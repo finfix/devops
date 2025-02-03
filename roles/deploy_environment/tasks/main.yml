@@ -1,14 +1,14 @@
-- name: Create needed directories
-  file:
-    path: "{{ remote_path }}/{{ item }}"
-    state: directory
-    owner: "{{ default_user }}"
-    group: "{{ default_group }}"
-  loop:
-    -
-    - nginx
-    - nginx/conf.d
-    - static
+#- name: Create needed directories
+#  file:
+#    path: "{{ remote_path }}/{{ item }}"
+#    state: directory
+#    owner: "{{ default_user }}"
+#    group: "{{ default_group }}"
+#  loop:
+#    -
+#    - nginx
+#    - nginx/conf.d
+#    - static
 
 - name: Deploy NGINX configs
   template:
@@ -17,25 +17,25 @@
     owner: "{{ default_user }}"
     group: "{{ default_group }}"
   loop:
-    - { src: mime.types.j2, dest: mime.types }
-    - { src: nginx.conf.j2, dest: nginx.conf }
-    - { src: conf.d/_.bonavii.com.conf.j2, dest: conf.d/_.bonavii.com.conf }
-    - { src: conf.d/api.bonavii.com.conf.j2, dest: conf.d/api.bonavii.com.conf }
-    - { src: conf.d/api.test.bonavii.com.conf.j2, dest: conf.d/api.test.bonavii.com.conf }
-    - { src: conf.d/bonavii.com.conf.j2, dest: conf.d/bonavii.com.conf }
-    - { src: conf.d/kss.bonavii.com.conf.j2, dest: conf.d/kss.bonavii.com.conf }
-    - { src: conf.d/metrics.bonavii.com.conf.j2, dest: conf.d/metrics.bonavii.com.conf }
-    - { src: conf.d/vpn.bonavii.com.conf.j2, dest: conf.d/vpn.bonavii.com.conf }
-    - { src: conf.d/vault.bonavii.com.conf.j2, dest: conf.d/vault.bonavii.com.conf }
+#    - { src: mime.types.j2, dest: mime.types }
+#    - { src: nginx.conf.j2, dest: nginx.conf }
+#    - { src: conf.d/_.bonavii.com.conf.j2, dest: conf.d/_.bonavii.com.conf }
+#    - { src: conf.d/api.bonavii.com.conf.j2, dest: conf.d/api.bonavii.com.conf }
+#    - { src: conf.d/api.test.bonavii.com.conf.j2, dest: conf.d/api.test.bonavii.com.conf }
+#    - { src: conf.d/bonavii.com.conf.j2, dest: conf.d/bonavii.com.conf }
+#    - { src: conf.d/kss.bonavii.com.conf.j2, dest: conf.d/kss.bonavii.com.conf }
+    - { src: conf.d/grafana.bonavii.com.conf.j2, dest: conf.d/grafana.bonavii.com.conf }
+#    - { src: conf.d/vpn.bonavii.com.conf.j2, dest: conf.d/vpn.bonavii.com.conf }
+#    - { src: conf.d/vault.bonavii.com.conf.j2, dest: conf.d/vault.bonavii.com.conf }
 
-- name: Ensure docker-compose.yml is present
-  template:
-    src: docker-compose.yml.j2
-    dest: "{{ remote_path }}/docker-compose.yml"
-    owner: "{{ default_user }}"
-    group: "{{ default_group }}"
-    mode: '0644'
-
+#- name: Ensure docker-compose.yml is present
+#  template:
+#    src: docker-compose.yml.j2
+#    dest: "{{ remote_path }}/docker-compose.yml"
+#    owner: "{{ default_user }}"
+#    group: "{{ default_group }}"
+#    mode: '0644'
+#
 - name: Start services
   community.docker.docker_compose_v2:
     recreate: always

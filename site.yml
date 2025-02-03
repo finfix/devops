@@ -5,6 +5,42 @@
     default_user: bonavi
     default_group: dev
     domain: bonavii.com
+    monitoring_path: monitoring
   roles:
-    - role: install_docker     # Установка Docker
-    - role: deploy_environment # Разворачиваем базовое окружение
+#    - role: install_docker     # Установка Docker
+#    - role: deploy_environment # Разворачиваем базовое окружение
+    - role: deploy_monitoring  # Разворачиваем окружение мониторинга
+
+#- hosts: servers
+#  become: yes
+#  vars:
+#    remote_path: /opt/coin
+#    default_user: bonavi
+#    default_group: dev
+#    service_name: server
+#    registry_url: ghcr.io
+#    registry_user: bonavi
+#    registry_password: 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
+#    prefix: coin
+#    image: ghcr.io/finfix/server:11930612885
+#    command_args: ""
+#    service_port: 8080
+#  roles:
+#    - role: deploy_service # Разворачиваем сервис
+
+#- hosts: servers
+#  become: yes
+#  vars:
+#    remote_path: /opt/coin
+#    default_user: bonavi
+#    default_group: dev
+#    service_name: server
+#    registry_url: ghcr.io
+#    registry_user: bonavi
+#    registry_password: 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
+#    prefix: swear
+#    image: ghcr.io/bonavi/swear:12204182354
+#    command_args: ""
+#    service_port: 8082
+#  roles:
+#    - role: deploy_service # Разворачиваем сервис

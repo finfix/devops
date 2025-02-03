@@ -1,0 +1,78 @@
+server:
+  http_listen_address: 0.0.0.0
+  http_listen_port: 9080
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+
+- job_name: containers
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: server
+      __path__: /var/lib/docker/containers/*/*log
+  pipeline_stages:
+  - json:
+      expressions:
+        attrs: attrs
+        tag: attrs.tag
+  - regex:
+      expression: (?P<container_name>(?:[^|]*[^|]))
+      source: "tag"
+  - docker: {}
+  - json:
+      expressions:
+        level: level
+        message: message
+        path: path
+        params: params
+        userInfo: userInfo
+        systemInfo: systemInfo
+        taskID: userInfo.taskID
+        build: systemInfo.build
+        version: systemInfo.version
+        env: systemInfo.env
+        userID: userInfo.userID
+        deviceID: userInfo.deviceID
+  - labels:
+      level:
+      message:
+      container_name:
+      path:
+      taskID:
+      build:
+      version:
+      env:
+      userID:
+      deviceID:
+      params:
+
+- job_name: nginx
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: nginx
+      __path__: /opt/coin/nginx/logs/*
+  pipeline_stages:
+  - regex:
+      expression: '^(?P<remote_addr>[\w\.]+) - (?P<remote_user>[^ ]*) \[(?P<time_local>.*)\] "(?P<method>[^ ]*) (?P<host>[^ ]*) (?P<request>[^ ]*) (?P<protocol>[^ ]*)" (?P<status>[\d]+) (?P<body_bytes_sent>[\d]+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)" (?P<request_time>[^"]*)?'
+  - labels:
+      remote_addr:
+      remote_user:
+      time_local:
+      method:
+      host:
+      request:
+      protocol:
+      status:
+      body_bytes_sent:
+      http_referer:
+      http_user_agent:
+      request_time:
