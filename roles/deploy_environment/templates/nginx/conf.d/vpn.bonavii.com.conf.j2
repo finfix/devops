@@ -1,0 +1,24 @@
+server {
+
+    listen       443 ssl http2;
+    server_name  vpn.bonavii.com;
+
+    location / {
+        proxy_pass http://{{ inventory_hostname }}:2053;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+
+server {
+
+    listen       80;
+    server_name  vpn.bonavii.com;
+
+    if ($host = vpn.bonavii.com) {
+        return 301 https://$host$request_uri;
+    }
+
+    return 404;
+}

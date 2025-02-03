@@ -1,0 +1,10 @@
+- hosts: servers
+  become: yes
+  vars:
+    remote_path: /opt/coin
+    default_user: bonavi
+    default_group: dev
+    domain: bonavii.com
+  roles:
+    - role: install_docker     # Установка Docker
+    - role: deploy_environment # Разворачиваем базовое окружение

@@ -1,0 +1,15 @@
+networks:
+  internal:
+    name: internal
+
+services:
+  {{ prefix }}-{{ service_name }}:
+    image: {{ image }}
+    container_name: {{ prefix }}-{{ service_name }}
+    restart: always
+    command: ./main {{ command_args }}
+    volumes:
+      - ./certs:/{{ service_name }}/certs
+    env_file: .env
+    networks:
+      - internal

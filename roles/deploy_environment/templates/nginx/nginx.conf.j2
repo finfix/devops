@@ -1,0 +1,94 @@
+# От имени какого пользователя будет запущен nginx
+user nginx;
+
+# Количество рабочих процессов для обработки входящих запросов
+worker_processes      auto;
+
+# Максимальное количество открытых файловых дескрипторов для каждого рабочего процесса
+worker_rlimit_nofile  65536;
+
+# Путь к журналу ошибок
+error_log  /var/log/nginx/error.log warn;
+
+# Путь к файлу, в котором будет сохранен pid процесса
+pid        /var/run/nginx.pid;
+
+events {
+  # Максимальное количество одновременно обслуживаемых соединений
+  worker_connections  2048;
+  # Параметр, позволяющий рабочим процессам Nginx принимать несколько соединений одновременно
+  multi_accept        on;
+  # Параметр, указывающий Nginx использовать механизм epoll для эффективной обработки событий ввода-вывода
+  use                 epoll;
+}
+
+http {
+
+  log_format main '$remote_addr - $remote_user [$time_local] '
+                '"$request_method $scheme://$host $request_uri $server_protocol" $status $body_bytes_sent '
+                '"$http_referer" "$http_user_agent" $request_time';
+
+  access_log  /var/log/nginx/access.log main;
+
+  #ssl_certificate      /etc/ssl/bonavii.com.crt;
+  #ssl_certificate_key  /etc/ssl/bonavii.com.key;
+  #ssl_certificate      /etc/ssl/fullchain.pem;
+  #ssl_certificate_key  /etc/ssl/privkey.pem;
+
+
+  # Путь к файлу с маппингом типов содержимого
+  include       /etc/nginx/mime.types;
+
+  # Тип файла, который присвоится ответу по умолчанию, если не удастся определить тип по mime
+  default_type  application/octet-stream;
+
+  # Параметр, включающий использование системного вызова sendfile для эффективной передачи файлов
+  sendfile     on;
+  # Опция, позволяющая Nginx отправлять сразу все данные клиенту, минимизируя задержки при передаче данных
+  tcp_nopush   on;
+  # Опция, отключающая алгоритм Nagle для сокетов TCP. Это позволяет Nginx отправлять данные клиенту немедленно, без задержек, связанных с буферизацией
+  tcp_nodelay  on;
+
+  # Таймаут после завершения ответа сервера перед закрытием keep-alive соединения
+  keepalive_timeout          10s;
+  # Таймаут для отправки данных клиенту
+  send_timeout               30s;
+
+  # Максимальный размер тела запроса
+  client_max_body_size       100m;
+  # Размер буфера для чтения тела запроса клиента
+  client_body_buffer_size    64k;
+  # Таймаут для чтения заголовков запроса клиента
+  client_header_timeout      10s;
+  # Таймаут для чтения тела запроса клиента
+  client_body_timeout        10s;
+
+  # Таймаут для установки соединения с прокси-сервером
+  proxy_connect_timeout      10s;
+  # Таймаут для чтения данных от прокси-сервера
+  proxy_read_timeout         2m;
+  # Таймаут для отправки данных прокси-серверу
+  proxy_send_timeout         2m;
+  # Буферизация ответов прокси-сервер
+  proxy_buffering            on;
+  # Размер буфера для прокси-сервера
+  proxy_buffer_size          16k;
+  # Количество буферов для прокси-сервера
+  proxy_buffers              16 16k;
+
+  # Сжатие gzip для ответов сервера
+  gzip             on;
+  # Уровень сжатия gzip. Уровень 1 является самым быстрым, но с наименьшей степенью сжатия
+  gzip_comp_level  1;
+  # Параметр, указывающий, что сжатие gzip может быть применено к любым ответам прокси-сервера
+  gzip_proxied     any;
+  # Этот параметр отключает добавление заголовка "Vary" в ответ, указывающего на использование сжатия gzip. По умолчанию, Nginx добавляет заголовок "Vary: Accept-Encoding", чтобы указать клиенту, что ответ был сжат с использованием gzip. Отключение этого параметра может быть полезно в некоторых случаях, чтобы избежать проблем с кэшированием
+  gzip_vary        off;
+  # Размер и количество буферов, используемых для сжатия gzip
+  gzip_buffers     16 16k;
+
+  # Cтраницf ошибки, которая будет отображаться для кодов состояния
+  error_page 500 502 503 504  /usr/share/nginx/html/50x.html;
+
+  include /etc/nginx/conf.d/*.conf;
+}

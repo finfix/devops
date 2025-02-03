@@ -1,0 +1,89 @@
+networks:
+  internal:
+    name: internal
+
+services:
+
+  vault:
+    image: hashicorp/vault:1.14
+    container_name: vault
+    restart: always
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_ADDR: "http://0.0.0.0:8200"
+      VAULT_API_ADDR: "https://vault.bonavii.com"
+      VAULT_ADDRESS: "http://0.0.0.0:8200"
+      VAULT_LOCAL_CONFIG: |
+        {
+          "listener":  {
+            "tcp":  {
+              "address":  "0.0.0.0:8200",
+              "tls_disable":  "true"
+            }
+          },
+          "backend": {
+            "file": {
+              "path": "/vault/file"
+            }
+          },
+          "default_lease_ttl": "168h",
+          "max_lease_ttl": "0h",
+          "api_addr": "https://vault.bonavii.com",
+          "ui": true
+        }
+    volumes:
+      - vault:/vault/file
+    networks:
+      - internal
+    command: ["server"]
+
+
+  pgsql:
+    image: postgres:latest
+    restart: always
+    container_name: pgsql
+    volumes:
+      - pgsql:/var/lib/postgresql/data
+    env_file:
+      - .env
+    ports:
+      - 127.0.0.1:5432:5432
+    networks:
+      - internal
+
+  pgsql-test:
+    image: postgres:latest
+    restart: always
+    container_name: pgsql-test
+    volumes:
+      - pgsql-test:/var/lib/postgresql/data
+      - ./backup:/backup
+    env_file:
+      - .env
+    ports:
+      - 127.0.0.1:5433:5432
+    networks:
+      - internal
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./nginx:/etc/nginx
+      - ./nginx/ssl:/etc/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+      - ./static:/static
+    env_file:
+      - .env
+    networks:
+      - internal
+
+volumes:
+  pgsql:
+  pgsql-test:
+  vault:

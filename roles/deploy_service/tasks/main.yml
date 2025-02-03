@@ -1,0 +1,28 @@
+---
+- name: Create needed directories
+  file:
+    path: "{{ remote_path }}/{{ service_name }}"
+    state: directory
+    owner: "{{ default_user }}"
+    group: "{{ default_group }}"
+
+- name: Ensure docker-compose.yml is present
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ remote_path }}/{{ service_name }}/docker-compose.yml"
+    owner: "{{ default_user }}"
+    group: "{{ default_group }}"
+    mode: '0644'
+
+- name: Login in docker registry
+  community.general.docker_login:
+    registry_url: "{{ registry_url }}"
+    username: "{{ registry_user }}"
+    password: "{{ registry_password }}"
+
+- name: Start service
+  community.docker.docker_compose_v2:
+    recreate: always
+    project_src: "{{ remote_path }}/{{ service_name }}"
+    services:
+      - "{{ prefix }}-{{ service_name }}"
