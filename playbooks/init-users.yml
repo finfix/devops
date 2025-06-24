@@ -1,0 +1,14 @@
+---
+- name: Initial server setup as root
+  hosts:
+    - coin
+  become: no
+  vars_files:
+    - secrets.yml
+    - env.yml
+  vars:
+    ansible_user: root
+    ansible_port: 22
+
+  roles:
+    - role: users

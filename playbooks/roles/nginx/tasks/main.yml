@@ -1,0 +1,44 @@
+---
+
+- name: Ensure Nginx is installed
+  apt:
+    name: nginx
+    state: present
+
+- name: Ensure apache2-utils is installed (for htpasswd)
+  apt:
+    name: apache2-utils
+    state: present
+
+- name: Ensure SSL directory exists
+  file:
+    path: /etc/nginx/ssl
+    state: directory
+    mode: '0755'
+
+- name: Create symlink for SSL directory
+  file:
+    src: "/etc/letsencrypt/live/{{ main_domain }}/{{ item.file }}"
+    dest:  "/etc/nginx/ssl/{{ item.file }}"
+    state: link
+  loop:
+    - { file: "fullchain.pem" }
+    - { file: "privkey.pem" }
+
+- name: Create Nginx configuration for each domain
+  template:
+    src: nginx-site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ item.name }}"
+  loop: "{{ domains }}"
+
+- name: Enable Nginx configurations
+  file:
+    src: "/etc/nginx/sites-available/{{ item.name }}"
+    dest: "/etc/nginx/sites-enabled/{{ item.name }}"
+    state: link
+  loop: "{{ domains }}"
+
+- name: Reload Nginx to apply changes
+  service:
+    name: nginx
+    state: reloaded

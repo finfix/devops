@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Generate certificates for all domains
+certbot certonly \
+  --manual \
+  --preferred-challenges dns \
+  --agree-tos \
+  --email {{ certbot_email }} \
+  --domain {{ main_domain }} \
+  --domain *.dev.{{ main_domain }} \
+  --domain *.{{ main_domain }}

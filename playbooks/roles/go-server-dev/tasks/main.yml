@@ -1,0 +1,33 @@
+---
+- name: Copy go-server-dev files to the server
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ project_dir }}/{{ item.dest }}"
+  loop:
+    - { src: docker-compose.go-server-dev.yml, dest: docker-compose.go-server-dev.yml }
+
+- name: Pull new version of go-server-dev image
+  command: docker compose -f {{ project_dir }}/docker-compose.go-server-dev.yml pull
+  args:
+    chdir: "{{ project_dir }}"
+
+- name: Down go-server-dev
+  command: docker compose -f {{ project_dir }}/docker-compose.go-server-dev.yml down
+  args:
+    chdir: "{{ project_dir }}"
+
+- name: Run go-server-dev
+  command: docker compose -f {{ project_dir }}/docker-compose.go-server-dev.yml up -d
+  args:
+    chdir: "{{ project_dir }}"
+  environment:
+    PGSQL_USER: "{{ postgres_user }}"
+    PGSQL_PASSWORD: "{{ postgres_password_dev }}"
+    PGSQL_DATABASE: "{{ postgres_db }}"
+    SHA_SALT: "{{ auth_dev.salt }}"
+    AUTH_TOKEN_SIGNING_KEY: "{{ auth_dev.key }}"
+    TG_BOT_TOKEN: "{{ tg_bot_token_dev }}"
+    TG_CHAT_ID: "{{ tg_chat_id_dev }}"
+    API_KEY_CURRENCY_PROVIDER: "{{ api_key_currency_provider }}"
+    NOTIFICATIONS_APNS_TEAM_ID: "{{ notifications_apns_team_id }}"
+    NOTIFICATIONS_APNS_KEY_ID: "{{ notifications_apns_key_id }}"

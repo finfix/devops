@@ -1,0 +1,11 @@
+---
+- name: Ensure certbot is installed
+  apt:
+    name: certbot
+    state: present
+
+- name: Copy certificate generation script
+  template:
+    src: generate-certs.sh.j2
+    dest: "/tmp/generate-certs.sh"
+    mode: '0755'
