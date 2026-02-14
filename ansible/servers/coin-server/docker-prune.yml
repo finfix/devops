@@ -3,7 +3,8 @@
   become: yes
 
   vars_files:
-    - secrets.yml
+    - ../../secrets.yml
+    - ../../env.yml
     - env.yml
 
   tasks:

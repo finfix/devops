@@ -1,0 +1,32 @@
+---
+- name: Create Nginx configuration for each domain
+  template:
+    src: nginx-site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ item.name }}"
+  loop: "{{ domains }}"
+  when:
+    - item.port is defined
+
+- name: Enable Nginx configurations
+  file:
+    src: "/etc/nginx/sites-available/{{ item.name }}"
+    dest: "/etc/nginx/sites-enabled/{{ item.name }}"
+    state: link
+  loop: "{{ domains }}"
+  when:
+    - item.port is defined
+
+- name: Check NGINX configs
+  shell: "/usr/sbin/nginx -t"
+  register: nginx_config_status
+
+- name: NGINX test status
+  debug:
+    msg: "{{ nginx_config_status }}"
+
+- name: Service NGINX reload
+  systemd:
+    name: nginx
+    state: reloaded
+    daemon_reload: yes
+  when: nginx_config_status.rc == 0

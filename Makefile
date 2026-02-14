@@ -4,29 +4,14 @@ create-ansible-password-file:
 	echo $$ansible_password > .vault_password; \
 	echo "Ansible Vault password file created."
 
-users.init:
-	ansible-playbook -i hosts.ini playbooks/init-users.yml --vault-password-file .vault_password
+deploy-go-server:
+	$(MAKE) -C ansible/servers/coin-server deploy-go-server
 
-certs.init:
-	ansible-playbook -i hosts.ini playbooks/init-certs.yml --vault-password-file .vault_password
+deploy-go-server-dev:
+	$(MAKE) -C ansible/servers/coin-server deploy-go-server-dev
 
-setup.server:
-	ansible-playbook -i hosts.ini playbooks/setup-server.yml --vault-password-file .vault_password
+add-ansible-vault-password:
+	echo $(VAULT_PASSWORD) > ansible/config/.vault_password
 
-go-server.deploy:
-	ansible-playbook -i hosts.ini playbooks/deploy-go-server.yml --vault-password-file .vault_password
-
-go-server-dev.deploy:
-	ansible-playbook -i hosts.ini playbooks/deploy-go-server-dev.yml --vault-password-file .vault_password
-
-nginx.deploy:
-	ansible-playbook -i hosts.ini playbooks/deploy-nginx.yml --vault-password-file .vault_password
-
-secrets.decrypt:
-	ansible-vault decrypt playbooks/secrets.yml --vault-password-file .vault_password
-
-secrets.encrypt:
-	ansible-vault encrypt playbooks/secrets.yml --vault-password-file .vault_password
-
-docker.prune:
-	ansible-playbook -i hosts.ini playbooks/docker-prune.yml  --vault-password-file .vault_password
+edit-secrets:
+	ansible-vault edit ansible/secrets.yml

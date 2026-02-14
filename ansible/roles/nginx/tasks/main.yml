@@ -1,5 +1,4 @@
 ---
-
 - name: Ensure Nginx is installed
   apt:
     name: nginx
@@ -9,6 +8,12 @@
   apt:
     name: apache2-utils
     state: present
+
+- name: Create .htpasswd file
+  command: >
+    htpasswd -b -c /etc/nginx/.htpasswd {{ basic_auth.username }} {{ basic_auth.password }}
+  args:
+    creates: /etc/nginx/.htpasswd  # Не создавать файл, если он уже существует
 
 - name: Ensure SSL directory exists
   file:
@@ -25,20 +30,17 @@
     - { file: "fullchain.pem" }
     - { file: "privkey.pem" }
 
-- name: Create Nginx configuration for each domain
-  template:
-    src: nginx-site.conf.j2
-    dest: "/etc/nginx/sites-available/{{ item.name }}"
-  loop: "{{ domains }}"
+- name: Check NGINX configs
+  shell: "/usr/sbin/nginx -t"
+  register: nginx_config_status
 
-- name: Enable Nginx configurations
-  file:
-    src: "/etc/nginx/sites-available/{{ item.name }}"
-    dest: "/etc/nginx/sites-enabled/{{ item.name }}"
-    state: link
-  loop: "{{ domains }}"
+- name: NGINX test status
+  debug:
+    msg: "{{ nginx_config_status }}"
 
-- name: Reload Nginx to apply changes
-  service:
+- name: Service NGINX reload
+  systemd:
     name: nginx
     state: reloaded
+    daemon_reload: yes
+  when: nginx_config_status.rc == 0

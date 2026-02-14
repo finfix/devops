@@ -1,0 +1,52 @@
+---
+- hosts: coin
+  become: yes
+
+  vars_files:
+    - ../../secrets.yml
+    - ../../env.yml
+    - env.yml
+
+  tasks:
+
+    - name: Create certs
+      import_role:
+        name: certs
+
+    - name: Setup project environment
+      import_role:
+        name: project-environment
+
+    - name: Setup docker
+      import_role:
+        name: docker
+
+    - name: Setup docker environment
+      import_role:
+        name: docker-environment
+
+    - name: Setup nginx
+      import_role:
+        name: nginx
+        tasks_from: main.yml
+
+    - name: Update nginx configs
+      import_role:
+        name: nginx
+        tasks_from: update-configs.yml
+
+    - name: Setup postgresql
+      import_role:
+        name: pgsql
+
+    - name: Setup postgresql dev
+      import_role:
+        name: pgsql-dev
+
+    - name: Setup go server
+      import_role:
+        name: go-server
+
+    - name: Setup go server dev
+      import_role:
+        name: go-server-dev
