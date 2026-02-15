@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coin-server
+  labels:
+    app: coin-server
+spec:
+  replicas: {{ .Values.coin_server.replicas }}
+  selector:
+    matchLabels:
+      app: coin-server
+  template:
+    metadata:
+      name: coin-server
+      labels:
+        app: coin-server
+    spec:
+      imagePullSecrets:
+        - name: registry-credentials
+      containers:
+        - name: coin-server
+          image: {{ .Values.coin_server.image.repository }}:{{ .Values.coin_server.image.tag | default "latest" }}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          env:
+            - name: "PGSQL_HOST"
+              value: "{{ .Release.Name }}-postgresql:5432"
+            - name: "PGSQL_USER"
+              value: {{ .Values.postgresql.auth.username }}
+            - name: "PGSQL_PASSWORD"
+              value: {{ .Values.postgresql.auth.password }}
+            - name: "PGSQL_DATABASE"
+              value: {{ .Values.postgresql.auth.database }}
+            - name: "OTLP_IS_ENABLED"
+              value: "false"
+            - name: "OTLP_HTTP_ENDPOINT"
+              value: ""
+            - name: "OTLP_INSECURE"
+              value: "false"
+            - name: "SERVICE_NAME"
+              value: "coin"
+            - name: "ENVIRONMENT"
+              value: {{ .Release.Name }}
+            - name: "STACK_TRACE_ENABLED"
+              value: "true"
+            - name: "LOG_LEVEL"
+              value: "debug"
+            - name: "LOG_FORMAT"
+              value: "json"
+            - name: "LISTEN_HTTP"
+              value: "0.0.0.0:8080"
+            - name: "PORT_HTTP"
+              value: "0.0.0.0:8080"
+            - name: "PORT_GRPC"
+              value: "0.0.0.0:8090"
+            - name: "AUTH_REFRESH_TOKEN_TTL"
+              value: "720h"
+            - name: "AUTH_TOKEN_SIGNING_KEY"
+              value: "{{ .Values.coin_server.auth.key }}"
+            - name: "AUTH_ACCESS_TOKEN_TTL"
+              value: "500h"
+            - name: "SHA_SALT"
+              value: "{{ .Values.coin_server.auth.salt }}"
+            - name: "TG_BOT_ENABLED"
+              value: "{{ .Values.coin_server.tg_bot_enabled }}"
+            - name: "TG_BOT_TOKEN"
+              value: "{{ .Values.coin_server.telegram_bot.token }}"
+            - name: "TG_CHAT_ID"
+              value: "{{ .Values.coin_server.telegram_bot.chat_id }}"
+            - name: "API_KEY_CURRENCY_PROVIDER"
+              value: "{{ .Values.coin_server.api_key_currency_provider }}"
+            - name: "NOTIFICATIONS_ENABLED"
+              value: "false"
+            - name: "NOTIFICATIONS_APNS_TEAM_ID"
+              value: "{{ .Values.coin_server.apns.team_id }}"
+            - name: "NOTIFICATIONS_APNS_KEY_ID"
+              value: "{{ .Values.coin_server.apns.key_id }}"
+            - name: "NOTIFICATIONS_APNS_KEY_FILE_PATH"
+              value: "certs/APNsKey.p8"
+      restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: coin-server
+spec:
+  selector:
+    app: coin-server
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: coin-server
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: {{ .Values.coin_server.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: coin-server
+                port:
+                  number: 8080

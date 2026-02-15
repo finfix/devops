@@ -1,0 +1,14 @@
+---
+- hosts: coin-2
+  become: yes
+
+  vars_files:
+    - ../../secrets.yml
+    - ../../env.yml
+    - env.yml
+
+  tasks:
+
+    - name: Setup k3s
+      import_role:
+        name: k3s
