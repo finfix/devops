@@ -38,3 +38,6 @@ edit-secrets-prod:
 
 edit-secrets-dev:
 	EDITOR="goland --wait" sops --config config/.sops.yaml -i values/secrets-dev.yaml
+
+deploy-prod:
+	helmfile -e prod apply

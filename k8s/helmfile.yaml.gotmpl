@@ -1,0 +1,34 @@
+environments:
+    prod:
+        values:
+        - values/values-prod.yaml
+        secrets:
+        - values/secrets-prod.yaml
+    dev:
+        values:
+        - values/values-dev.yaml
+        secrets:
+        - values/secrets-dev.yaml
+
+---
+
+releases:
+  - name: postgres
+    chart: bitnami/postgresql
+    version: 18.3.0
+    values:
+      - auth:
+          password: {{ .Values.postgresql.auth.password | quote }}
+          username: {{ .Values.postgresql.auth.username | quote }}
+          database: {{ .Values.postgresql.auth.database | quote }}
+    namespace: postgres-{{ .Environment.Name }}
+    recreatePods: true
+
+  - name: coin-server
+    chart: ./coin-server
+    values:
+      - "values/values-{{ .Environment.Name }}.yaml"
+    secrets:
+      - "values/secrets-{{ .Environment.Name }}.yaml"
+    namespace: coin-{{ .Environment.Name }}
+    recreatePods: true

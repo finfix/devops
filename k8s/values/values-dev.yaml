@@ -10,4 +10,6 @@ coin_server:
     repository: ghcr.io/finfix/go-server-dev
     tag: latest
   telegram_bot:
-    enabled: false
+    enabled: "false"
+
+environment: dev
