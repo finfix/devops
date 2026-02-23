@@ -1,0 +1,33 @@
+image:
+  tag: {{ env "APP_VERSION" | default "latest" }}
+
+
+replicas: 1
+
+service_name: coin-server
+log:
+  level: debug
+  format: json
+listen:
+  http: 0.0.0.0:8080
+  grpc: 0.0.0.0:8090
+auth:
+  refresh_token_ttl: 720h
+  access_token_ttl: 30m
+  key: "{{ .Values.coin_server.auth.key }}"
+  salt: "{{ .Values.coin_server.auth.salt }}"
+tg_bot:
+  token: "{{ .Values.coin_server.telegram_bot.token }}"
+  chat_id: "{{ .Values.coin_server.telegram_bot.chat_id }}"
+apns:
+  team_id: "{{ .Values.coin_server.apns.team_id }}"
+  key_id: "{{ .Values.coin_server.apns.key_id }}"
+  apns_key_file_path: ""
+pgsql:
+  auth:
+    username: "{{ .Values.postgresql.auth.username }}"
+    password: "{{ .Values.postgresql.auth.password }}"
+    database: "{{ .Values.postgresql.auth.database }}"
+api_key_currency_provider: "{{ .Values.coin_server.api_key_currency_provider }}"
+env: "{{ .Environment.Name }}"
+commit: {{ env "CI_COMMIT_SHA" | default (randAlphaNum 8) | quote }}

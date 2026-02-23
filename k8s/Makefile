@@ -34,10 +34,16 @@ uninstall-dev:
 	helm uninstall dev -n dev
 
 edit-secrets-prod:
-	EDITOR="goland --wait" sops --config config/.sops.yaml -i values/secrets-prod.yaml
+	EDITOR="goland --wait" sops --config config/.sops.yaml -i config/secrets-prod.yaml
 
 edit-secrets-dev:
-	EDITOR="goland --wait" sops --config config/.sops.yaml -i values/secrets-dev.yaml
+	EDITOR="goland --wait" sops --config config/.sops.yaml -i config/secrets-dev.yaml
+
+template-prod:
+	helmfile -e prod template
 
 deploy-prod:
 	helmfile -e prod apply
+
+write-values-prod:
+	helmfile -e prod write-values

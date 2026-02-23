@@ -5,7 +5,7 @@ metadata:
   labels:
     app: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.coin_server.replicas }}
+  replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
       app: {{ .Release.Name }}
@@ -14,12 +14,14 @@ spec:
       name: {{ .Release.Name }}
       labels:
         app: {{ .Release.Name }}
+      annotations:
+        commit: {{ .Values.commit }}
     spec:
       imagePullSecrets:
         - name: registry-credentials
       containers:
         - name: {{ .Release.Name }}
-          image: {{ .Values.coin_server.image.repository }}:{{ .Values.coin_server.image.tag | default "latest" }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -56,7 +58,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: {{ .Values.coin_server.host }}
+    - host: {{ .Values.host }}
       http:
         paths:
           - path: /

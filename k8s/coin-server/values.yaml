@@ -1,0 +1,41 @@
+image:
+  tag: latest
+  repository: ghcr.io/finfix/go-server
+
+replicas: 1
+
+host: "api.example.com"
+
+otlp:
+  enabled: false
+  endpoint: ""
+  insecure: false
+service_name: coin-server
+env: "dev"
+tg_bot:
+  enabled: false
+  token: ""
+  chat_id: ""
+log:
+  level: debug
+  format: json
+listen:
+  http: 8080
+  grpc: 8090
+auth:
+  refresh_token_ttl: 720h
+  access_token_ttl: 30m
+  key: "key"
+  salt: "salt"
+apns:
+  enabled: false
+  apns_key_file_path: ""
+  team_id: ""
+  key_id: ""
+pgsql:
+  auth:
+    username: "admin"
+    password: "admin"
+    database: "admin"
+  endpoint: "postgresql-postgresql-0.postgresql-prod.svc"
+api_key_currency_provider: ""

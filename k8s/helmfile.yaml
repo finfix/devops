@@ -1,0 +1,35 @@
+environments:
+  dev:
+    secrets:
+      - "config/secrets-dev.yaml"
+  prod:
+    secrets:
+      - "config/secrets-prod.yaml"
+
+---
+
+helmDefaults:
+  kubeContext: k3s
+
+templates:
+  default:
+    namespace: "{{ .Release.Name }}-{{ .Environment.Name }}"
+    values:
+      - "config/{{ .Release.Name }}/values.yaml.gotmpl"
+      - "config/{{ .Release.Name }}/values-{{ .Environment.Name }}.yaml.gotmpl"
+
+releases:
+  - name: postgres
+    chart: bitnami/postgresql
+    version: 18.3.0
+    inherit:
+      - template: default
+
+  - name: coin-server
+    chart: ./coin-server
+    namespace: coin-prod
+    missingFileHandler: Warn
+    values:
+      - "config/{{ .Release.Name }}/values.yaml.gotmpl" # Дефолтные переменные уровня GitOps
+      - "config/{{ .Release.Name }}/values-{{ .Environment.Name }}.yaml.gotmpl" # Environment-ориентированные переменные уровня GitOps
+      - "../../{{ .Release.Name }}/deploy/values.local.yaml" # Значения из сервиса при деплое
