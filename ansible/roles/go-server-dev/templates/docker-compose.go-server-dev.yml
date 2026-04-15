@@ -3,6 +3,7 @@ services:
     image: ghcr.io/finfix/go-server-dev:latest
     ports:
       - "127.0.0.1:8081:8080"
+      - "127.0.0.1:8091:8090"
     logging:
       driver: json-file
       options:
@@ -35,8 +36,8 @@ services:
       LOG_FORMAT: json
 
       # HTTP-ADDRESS
-      PORT_HTTP: 0.0.0.0:8080
-      PORT_GRPC: 0.0.0.0:8090
+      LISTEN_HTTP: 0.0.0.0:8080
+      LISTEN_GRPC: 0.0.0.0:8090
 
       # AUTH
       AUTH_REFRESH_TOKEN_TTL: 720h

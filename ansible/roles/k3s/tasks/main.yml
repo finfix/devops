@@ -31,14 +31,8 @@
   retries: 10
   delay: 5
 
-- name: Install ingress
-  shell: | 
-    helm upgrade --install ingress-nginx ingress-nginx \
-    --repo https://kubernetes.github.io/ingress-nginx \
-    --namespace ingress-nginx --create-namespace
-
 - name: Get Kubeconfig to local machine
   fetch:
     src: /etc/rancher/k3s/k3s.yaml
-    dest: "./k3s-config.yaml"
+    dest: "~/Desktop/k3s-config.yaml"
     flat: yes

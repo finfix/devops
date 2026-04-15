@@ -8,17 +8,47 @@ environments:
 
 ---
 
+repositories:
+  - name: ingress-nginx
+    url: https://kubernetes.github.io/ingress-nginx
+
 helmDefaults:
   kubeContext: k3s
 
 templates:
   default:
+    createNamespace: true
+    missingFileHandler: Warn
     namespace: "{{ .Release.Name }}-{{ .Environment.Name }}"
     values:
       - "config/{{ .Release.Name }}/values.yaml.gotmpl"
       - "config/{{ .Release.Name }}/values-{{ .Environment.Name }}.yaml.gotmpl"
 
 releases:
+  - name: ingress-nginx
+    chart: ingress-nginx/ingress-nginx
+    inherit:
+      - template: default
+    values:
+      - controller:
+          # 1. Самое важное: разрешаем поду использовать сеть хоста
+          hostNetwork: true
+
+          # 2. Указываем, что контроллер должен развернуться как DaemonSet
+          # (по одному на каждую ноду), чтобы 80 порт был открыт везде
+          kind: DaemonSet
+
+          # 3. Настраиваем политику трафика, чтобы сохранять реальные IP адреса
+          externalTrafficPolicy: Local
+
+          # 4. Отключаем тип LoadBalancer, так как мы сидим на HostNetwork
+          service:
+            type: ClusterIP
+
+          # 5. (Опционально) Если порты 80/443 на хосте заняты чем-то другим,
+          # можно их переопределить здесь, но обычно оставляют стандартные.
+          dnsPolicy: ClusterFirstWithHostNet
+
   - name: postgres
     chart: bitnami/postgresql
     version: 18.3.0
