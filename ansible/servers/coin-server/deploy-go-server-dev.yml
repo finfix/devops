@@ -2,11 +2,6 @@
 - hosts: coin
   become: yes
 
-  vars_files:
-    - ../../secrets.yml
-    - ../../env.yml
-    - env.yml
-
   roles:
     - role: project-environment
     - role: docker-environment

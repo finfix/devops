@@ -2,9 +2,6 @@
 - name: Initial server setup as root
   hosts: "{{ target }}"
   become: yes
-  vars_files:
-    - ../secrets.yml
-    - ../env.yml
   vars:
     ansible_user: root
     ansible_port: 22
