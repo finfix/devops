@@ -24,7 +24,7 @@
     PGSQL_USER: "{{ postgres_user }}"
     PGSQL_PASSWORD: "{{ postgres_password_dev }}"
     PGSQL_DATABASE: "{{ postgres_db }}"
-    SHA_SALT: "{{ auth_dev.salt }}"
+    SHA_SALT: "{{ auth.salt }}"
     AUTH_TOKEN_SIGNING_KEY: "{{ auth_dev.key }}"
     TG_BOT_TOKEN: "{{ tg_bot_token_dev }}"
     TG_CHAT_ID: "{{ tg_chat_id_dev }}"

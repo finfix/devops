@@ -4,6 +4,16 @@
     name: nginx
     state: present
 
+- name: Ensure nginx-extras is installed
+  apt:
+    name: nginx-extras
+    state: present
+
+- name: Ensure nginx-full is installed
+  apt:
+    name: nginx-full
+    state: present
+
 - name: Ensure apache2-utils is installed (for htpasswd)
   apt:
     name: apache2-utils
@@ -21,14 +31,17 @@
     state: directory
     mode: '0755'
 
-- name: Create symlink for SSL directory
+- name: Ensure stream-available directory exists
   file:
-    src: "/etc/letsencrypt/live/{{ main_domain }}/{{ item.file }}"
-    dest:  "/etc/nginx/ssl/{{ item.file }}"
-    state: link
-  loop:
-    - { file: "fullchain.pem" }
-    - { file: "privkey.pem" }
+    path: /etc/nginx/stream-available
+    state: directory
+    mode: '0755'
+
+- name: Ensure stream-enabled directory exists
+  file:
+    path: /etc/nginx/stream-enabled
+    state: directory
+    mode: '0755'
 
 - name: Check NGINX configs
   shell: "/usr/sbin/nginx -t"

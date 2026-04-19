@@ -7,7 +7,6 @@ create-ansible-password-file:
 add-ansible-vault-password:
 	echo $(VAULT_PASSWORD) > ansible/config/.vault_password
 
-
 deploy-go-server:
 	$(MAKE) -C ansible/servers/coin-server deploy-go-server
 
