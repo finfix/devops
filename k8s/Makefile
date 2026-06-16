@@ -5,6 +5,33 @@ DESCRIPTION ?= Manual deploy
 dependency-build:
 	helm dependency build
 
+# Секреты
+edit-secrets-prod:
+	EDITOR="goland --wait" sops --config config/.sops.yaml -i config/secrets-prod.yaml
+
+edit-secrets-dev:
+	EDITOR="goland --wait" sops --config config/.sops.yaml -i config/secrets-dev.yaml
+
+# Тестирование
+template-prod:
+	helmfile -e prod template
+
+template-dev:
+	helmfile -e dev template
+
+write-values-prod:
+	helmfile -e prod write-values
+
+write-values-dev:
+	helmfile -e dev write-values
+
+# Деплой
+deploy-prod:
+	helmfile -e prod apply
+
+deploy-dev:
+	helmfile -e dev apply
+
 upgrade-prod:
 	helm secrets upgrade \
 	--install \
@@ -16,8 +43,6 @@ upgrade-prod:
 	--description "${DESCRIPTION}" \
 	./
 
-uninstall-prod:
-	helm uninstall prod -n prod
 
 upgrade-dev:
 	helm secrets upgrade \
@@ -30,20 +55,8 @@ upgrade-dev:
 	--description "${DESCRIPTION}" \
 	./
 
+uninstall-prod:
+	helm uninstall ingress-nginx -n ingress-nginx-prod
+
 uninstall-dev:
 	helm uninstall dev -n dev
-
-edit-secrets-prod:
-	EDITOR="goland --wait" sops --config config/.sops.yaml -i config/secrets-prod.yaml
-
-edit-secrets-dev:
-	EDITOR="goland --wait" sops --config config/.sops.yaml -i config/secrets-dev.yaml
-
-template-prod:
-	helmfile -e prod template
-
-deploy-prod:
-	helmfile -e prod apply
-
-write-values-prod:
-	helmfile -e prod write-values

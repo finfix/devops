@@ -13,7 +13,7 @@ repositories:
     url: https://kubernetes.github.io/ingress-nginx
 
 helmDefaults:
-  kubeContext: k3s
+  kubeContext: coin-1
 
 templates:
   default:
@@ -25,8 +25,10 @@ templates:
       - "config/{{ .Release.Name }}/values-{{ .Environment.Name }}.yaml.gotmpl"
 
 releases:
+  # Nginx ingresss
   - name: ingress-nginx
     chart: ingress-nginx/ingress-nginx
+    namespace: ingress-nginx
     inherit:
       - template: default
     values:
@@ -49,15 +51,17 @@ releases:
           # можно их переопределить здесь, но обычно оставляют стандартные.
           dnsPolicy: ClusterFirstWithHostNet
 
+  # Postgresql
   - name: postgres
     chart: bitnami/postgresql
     version: 18.3.0
     inherit:
       - template: default
 
+  # User application Coin
   - name: coin-server
     chart: ./coin-server
-    namespace: coin-prod
+    namespace: coin-{{ .Environment.Name }}
     missingFileHandler: Warn
     values:
       - "config/{{ .Release.Name }}/values.yaml.gotmpl" # Дефолтные переменные уровня GitOps

@@ -4,7 +4,7 @@ image:
 
 replicas: 1
 
-service_name: coin-server
+service_name: coin
 log:
   level: debug
   format: json
@@ -29,5 +29,9 @@ pgsql:
     password: "{{ .Values.postgresql.auth.password }}"
     database: "{{ .Values.postgresql.auth.database }}"
 api_key_currency_provider: "{{ .Values.coin_server.api_key_currency_provider }}"
+image_credentials:
+  registry: "{{ .Values.image_credentials.registry }}"
+  username: "{{ .Values.image_credentials.username }}"
+  password: "{{ .Values.image_credentials.password }}"
 env: "{{ .Environment.Name }}"
 commit: {{ env "CI_COMMIT_SHA" | default (randAlphaNum 8) | quote }}

@@ -21,7 +21,7 @@ log:
   format: json
 listen:
   http: 8080
-  grpc: 8090
+  grpc: 0.0.0.0:8090
 auth:
   refresh_token_ttl: 720h
   access_token_ttl: 30m

@@ -14,6 +14,7 @@ data:
   LOG_LEVEL: "{{ .Values.log.level }}"
   LOG_FORMAT: "{{ .Values.log.format }}"
   LISTEN_HTTP: "{{ .Values.listen.http }}"
+  LISTEN_GRPC: "{{ .Values.listen.grpc }}"
   PORT_HTTP: "{{ .Values.listen.http }}"
   PORT_GRPC: "{{ .Values.listen.grpc }}"
   AUTH_REFRESH_TOKEN_TTL: "{{ .Values.auth.refresh_token_ttl }}"
