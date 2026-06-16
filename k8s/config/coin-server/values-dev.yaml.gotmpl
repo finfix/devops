@@ -1,7 +1,7 @@
 image:
     repository: ghcr.io/finfix/go-server-dev
 
-host: "api.dev.bonavii.com"
+host: "dev.coin-2.bonavii.com"
 
 tg_bot:
     enabled: false
@@ -11,3 +11,7 @@ log:
     level: debug
 pgsql:
     endpoint: "postgres-postgresql.postgres-dev.svc.cluster.local:5432"
+image_credentials:
+    registry: "{{ .Values.image_credentials.registry }}"
+    username: "{{ .Values.image_credentials.username }}"
+    password: "{{ .Values.image_credentials.password }}"

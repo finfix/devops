@@ -20,6 +20,7 @@ log:
   level: debug
   format: json
 listen:
+  port: 8080
   http: 8080
   grpc: 0.0.0.0:8090
 auth:
