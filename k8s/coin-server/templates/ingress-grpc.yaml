@@ -1,0 +1,26 @@
+{{- if .Values.grpc_host }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-grpc
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/backend-protocol: GRPC
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - {{ .Values.grpc_host }}
+      secretName: {{ .Release.Name }}-grpc-tls
+  rules:
+    - host: {{ .Values.grpc_host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}
+                port:
+                  number: 8090
+{{- end }}

@@ -5,6 +5,7 @@ image:
 replicas: 1
 
 host: "api.example.com"
+grpc_host: ""
 
 otlp:
   enabled: false

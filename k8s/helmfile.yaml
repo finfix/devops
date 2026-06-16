@@ -15,76 +15,49 @@ repositories:
     url: https://charts.jetstack.io
   - name: incubator
     url: https://charts.helm.sh/incubator
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
 
 helmDefaults:
-  kubeContext: coin-1
+  kubeContext: coin
 
 templates:
   default:
     createNamespace: true
     missingFileHandler: Warn
-    namespace: "{{ .Release.Name }}-{{ .Environment.Name }}"
     values:
       - "config/{{ .Release.Name }}/values.yaml.gotmpl"
       - "config/{{ .Release.Name }}/values-{{ .Environment.Name }}.yaml.gotmpl"
 
 releases:
-  # Nginx ingresss
+  # Nginx Ingress
   - name: ingress-nginx
     chart: ingress-nginx/ingress-nginx
     namespace: ingress-nginx
     inherit:
       - template: default
-    values:
-      - controller:
-          # 1. Самое важное: разрешаем поду использовать сеть хоста
-          hostNetwork: true
-
-          # 2. Указываем, что контроллер должен развернуться как DaemonSet
-          # (по одному на каждую ноду), чтобы 80 порт был открыт везде
-          kind: DaemonSet
-
-          # 3. Настраиваем политику трафика, чтобы сохранять реальные IP адреса
-          externalTrafficPolicy: Local
-
-          # 4. Отключаем тип LoadBalancer, так как мы сидим на HostNetwork
-          service:
-            type: ClusterIP
-
-          # 5. (Опционально) Если порты 80/443 на хосте заняты чем-то другим,
-          # можно их переопределить здесь, но обычно оставляют стандартные.
-          dnsPolicy: ClusterFirstWithHostNet
 
   # Cert-manager
   - name: cert-manager
     chart: jetstack/cert-manager
     namespace: cert-manager
-    createNamespace: true
-    values:
-      - crds:
-          enabled: true
-
+    inherit:
+      - template: default
   - name: letsencrypt-issuer
     chart: incubator/raw
     namespace: cert-manager
     version: 0.2.5
     needs: [cert-manager]
-    values:
-      - resources:
-        - apiVersion: cert-manager.io/v1
-          kind: ClusterIssuer
-          metadata:
-            name: letsencrypt
-          spec:
-            acme:
-              email: bonavii@icloud.com
-              server: https://acme-v02.api.letsencrypt.org/directory
-              privateKeySecretRef:
-                name: letsencrypt-cert
-              solvers:
-              - http01:
-                  ingress:
-                    class: nginx
+    inherit:
+      - template: default
+
+  # Monitoring
+  - name: monitoring
+    chart: prometheus-community/kube-prometheus-stack
+    namespace: monitoring
+    disableValidationOnInstall: true
+    inherit:
+      - template: default
 
   # Postgresql
   - name: postgres
@@ -93,12 +66,12 @@ releases:
     inherit:
       - template: default
 
-  # User application Coin
+  # Coin Server
   - name: coin-server
     chart: ./coin-server
     namespace: coin-{{ .Environment.Name }}
     missingFileHandler: Warn
     values:
-      - "config/{{ .Release.Name }}/values.yaml.gotmpl" # Дефолтные переменные уровня GitOps
-      - "config/{{ .Release.Name }}/values-{{ .Environment.Name }}.yaml.gotmpl" # Environment-ориентированные переменные уровня GitOps
-      - "../../{{ .Release.Name }}/deploy/values.local.yaml" # Значения из сервиса при деплое
+      - "config/{{ .Release.Name }}/values.yaml.gotmpl"
+      - "config/{{ .Release.Name }}/values-{{ .Environment.Name }}.yaml.gotmpl"
+      - "../../{{ .Release.Name }}/deploy/values.local.yaml"
