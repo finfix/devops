@@ -1,8 +1,0 @@
----
-- hosts: coin-1
-  become: yes
-
-  roles:
-    - role: project-environment
-    - role: docker-environment
-    - role: go-server

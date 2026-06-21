@@ -32,6 +32,13 @@ deploy-prod:
 deploy-dev:
 	helmfile -e dev apply
 
+sync-prod:
+	helmfile -e prod sync
+
+sync-dev:
+	helmfile -e dev sync
+
+
 upgrade-prod:
 	helm secrets upgrade \
 	--install \

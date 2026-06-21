@@ -23,6 +23,7 @@ helmDefaults:
 
 templates:
   default:
+    namespace: "{{ .Release.Name }}-{{ .Environment.Name }}"
     createNamespace: true
     missingFileHandler: Warn
     values:

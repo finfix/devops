@@ -1,5 +1,5 @@
 ---
-- hosts: coin-2
+- hosts: coin-1
   become: yes
 
   tasks:
