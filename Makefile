@@ -1,20 +1,8 @@
-create-ansible-password-file:
-	echo "Please enter the Ansible Vault password for the playbooks:"
-	@read -s ansible_password; \
-	echo $$ansible_password > ansible/config/.vault_password; \
-	echo "Ansible Vault password file created."
+export SOPS_AGE_KEY_FILE=$(CURDIR)/k8s/secrets/key.txt
+APP_VERSION ?= latest
 
-add-ansible-vault-password:
-	echo $(VAULT_PASSWORD) > ansible/config/.vault_password
+deploy-coin-server:
+	APP_VERSION=$(APP_VERSION) helmfile -f k8s/helmfile.yaml -e prod apply -l name=coin-server --diff-args="--suppress-secrets"
 
-deploy-go-server:
-	$(MAKE) -C ansible/servers/coin-server deploy-go-server
-
-deploy-go-server-dev:
-	$(MAKE) -C ansible/servers/coin-server deploy-go-server-dev
-
-deploy-prod:
-	$(MAKE) -C ansible upgrade-prod
-
-deploy-dev:
-	$(MAKE) -C k8s upgrade-dev
+deploy-coin-server-dev:
+	APP_VERSION=$(APP_VERSION) helmfile -f k8s/helmfile.yaml -e dev apply -l name=coin-server --diff-args="--suppress-secrets"

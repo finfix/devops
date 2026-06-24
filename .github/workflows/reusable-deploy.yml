@@ -1,0 +1,180 @@
+name: reusable-deploy
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        type: string
+      make_command:
+        required: true
+        type: string
+      devops_repository:
+        required: true
+        type: string
+      build_mode:
+        required: false
+        type: string
+        default: ''
+      ga_measurement_id:
+        required: false
+        type: string
+        default: ''
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+
+  # Собираем и пушим Docker-образ
+  docker-build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build_tag: ${{ steps.version.outputs.build_tag }}
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from ref
+        id: version
+        run: |
+          VERSION=${GITHUB_REF##*/}
+          BUILD=$(git rev-parse --short HEAD)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "BUILD=$BUILD" >> $GITHUB_ENV
+          echo "BUILD_DATE=$(git log -1 --format=%cd --date=short)" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "build_tag=build-$BUILD" >> $GITHUB_OUTPUT
+
+      - name: Login to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download submodules
+        run: |
+          git submodule update --init --recursive
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          file: build/Dockerfile
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ inputs.image_name }}:${{ env.VERSION }}
+            ${{ env.REGISTRY }}/${{ inputs.image_name }}:latest
+            ${{ env.REGISTRY }}/${{ inputs.image_name }}:build-${{ env.BUILD }}
+          build-args: |
+            CI_JOB_TOKEN=${{ secrets.PAT_TOKEN }}
+            VERSION=${{ env.VERSION }}
+            BUILD=${{ env.BUILD }}
+            BUILD_DATE=${{ env.BUILD_DATE }}
+            BUILD_MODE=${{ inputs.build_mode }}
+            GA_MEASUREMENT_ID=${{ inputs.ga_measurement_id }}
+
+  # Деплой через Helmfile
+  helmfile-deploy:
+    needs: docker-build-and-push
+    env:
+      VERSION: ${{ needs.docker-build-and-push.outputs.version }}
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/helmfile/helmfile:latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.devops_repository }}
+          token: '${{ secrets.PAT_TOKEN }}'
+
+      - name: Install make
+        run: apk add --no-cache make
+
+      - name: Setup kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          printf '%s' "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+
+      - name: Setup SOPS age key
+        run: |
+          printf '%s' "${{ secrets.SOPS_AGE }}" > k8s/secrets/key.txt
+
+      - name: Deploy
+        id: deploy
+        env:
+          APP_VERSION: ${{ needs.docker-build-and-push.outputs.build_tag }}
+        run: |
+          make ${{ inputs.make_command }}
+
+      - name: Notify
+        if: always()
+        run: |
+          escape_html() {
+            printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
+          }
+
+          VERSION="${{ env.VERSION }}"
+          SAFE_VERSION=$(escape_html "$VERSION")
+          SAFE_COMMIT_TITLE=$(escape_html "${{ github.event.head_commit.message }}")
+
+          if [ "${{ job.status }}" = "success" ]; then
+            STATUS_ICON="✅"
+            STATUS_TEXT="<b>Задеплоились</b>"
+          else
+            STATUS_ICON="🚨"
+            STATUS_TEXT="<b>Деплой зафейлился</b>"
+          fi
+
+          MESSAGE="$STATUS_ICON CI: $STATUS_TEXT
+
+          🧩 <b>Project:</b> ${{ github.event.repository.name }}
+          🏷 <b>Version:</b> ${SAFE_VERSION}
+          🏗 <b>Build:</b> build-$(echo "${{ github.sha }}" | cut -c1-7)
+          📝 <b>Message:</b> ${SAFE_COMMIT_TITLE}
+          👤 <b>By:</b> ${{ github.actor }}
+          🔧 <b>Command:</b> ${{ inputs.make_command }}
+
+          🔗 ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+
+          curl -s -X POST -H "Content-Type: application/json" -d "{
+            \"chat_id\": \"${{ secrets.TG_CHAT_ID }}\",
+            \"message_thread_id\": \"${{ secrets.TG_TOPIC_ID }}\",
+            \"parse_mode\": \"HTML\",
+            \"text\": \"$MESSAGE\",
+            \"disable_notification\": true,
+            \"disable_web_page_preview\": true
+          }" https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendMessage
+
+          GRAFANA_MESSAGE="$STATUS_ICON Deploy
+          🧩 Project: ${{ github.event.repository.name }}
+          🏷 Version: ${VERSION}
+          🏗 Build: build-$(echo "${{ github.sha }}" | cut -c1-7)
+          📝 Message: ${{ github.event.head_commit.message }}
+          👤 By: ${{ github.actor }}
+          🔧 Command: ${{ inputs.make_command }}
+          🔗 ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+
+          JSON_TEXT=$(printf '%s' "$GRAFANA_MESSAGE" \
+            | sed \
+            -e 's/\\/\\\\/g' \
+            -e 's/"/\\"/g' \
+            -e ':a;N;$!ba;s/\n/\\n/g')
+
+          ANNOTATION_TIME=$(($(date +%s) * 1000))
+
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GRAFANA_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.GRAFANA_URL }}/api/annotations" \
+            -d "{
+              \"time\": ${ANNOTATION_TIME},
+              \"text\": \"${JSON_TEXT}\",
+              \"tags\": [\"ci\", \"deploy\", \"${{ github.event.repository.name }}\", \"${{ inputs.make_command }}\"]
+            }"
