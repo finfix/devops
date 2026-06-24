@@ -1,18 +1,4 @@
-# Устанавливаем CRD через helm чтобы не применять вручную через kubectl
+# Устанавливаем CRD через helm чтобы не применять вручную через kubectl.
+# CRD включают такие ресурсы как PrometheusRule, ServiceMonitor, AlertmanagerConfig и др.
 crds:
   enabled: true
-
-grafana:
-  adminPassword: {{ .Values.grafana.adminPassword }}
-  ingress:
-    enabled: true
-    ingressClassName: nginx
-    annotations:
-      # Автоматический выпуск TLS сертификата через cert-manager
-      cert-manager.io/cluster-issuer: letsencrypt
-    hosts:
-      - grafana.bonavii.com
-    tls:
-      - secretName: grafana-tls
-        hosts:
-          - grafana.bonavii.com

@@ -1,10 +1,10 @@
 environments:
   dev:
     secrets:
-      - "config/secrets-dev.yaml"
+      - "secrets/secrets-dev.yaml"
   prod:
     secrets:
-      - "config/secrets-prod.yaml"
+      - "secrets/secrets-prod.yaml"
 
 ---
 
@@ -17,12 +17,20 @@ repositories:
     url: https://charts.helm.sh/incubator
   - name: prometheus-community
     url: https://prometheus-community.github.io/helm-charts
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
 
 helmDefaults:
   kubeContext: coin
+  # При падении деплоя автоматически откатывает к предыдущей версии —
+  # релиз не застрянет в состоянии failed
+  atomic: true
 
 templates:
-  default:
+
+  # Сервисы с окружениями (prod/dev) — namespace включает имя окружения,
+  # подгружается общий values и env-специфичный (values-prod.yaml.gotmpl и т.д.)
+  prod_dev:
     namespace: "{{ .Release.Name }}-{{ .Environment.Name }}"
     createNamespace: true
     missingFileHandler: Warn
@@ -30,49 +38,133 @@ templates:
       - "config/{{ .Release.Name }}/values.yaml.gotmpl"
       - "config/{{ .Release.Name }}/values-{{ .Environment.Name }}.yaml.gotmpl"
 
+  # Сервисы в одном экземпляре (мониторинг, ingress, cert-manager и др.) —
+  # namespace фиксированный, без суффикса окружения, env-специфичный файл не нужен
+  singleton:
+    namespace: "{{ .Release.Name }}"
+    createNamespace: true
+    missingFileHandler: Warn
+    values:
+      - "config/{{ .Release.Name }}/values.yaml.gotmpl"
+    labels:
+      env: prod
+
+  # Локальные чарты (go-server, envoy, vue-client и др.) —
+  # namespace включает окружение, дополнительно подгружается values.local.yaml из репозитория чарта
+  chart:
+    namespace: "{{ .Environment.Name }}"
+    createNamespace: true
+    missingFileHandler: Warn
+    values:
+      - "config/{{ .Release.Name }}/values.yaml.gotmpl"
+      - "config/{{ .Release.Name }}/values-{{ .Environment.Name }}.yaml.gotmpl"
+
 releases:
+  # Cluster Users
+  - name: cluster-users
+    chart: incubator/raw
+    version: 0.2.5
+    namespace: default
+    inherit:
+      - template: singleton
+
   # Nginx Ingress
   - name: ingress-nginx
     chart: ingress-nginx/ingress-nginx
-    namespace: ingress-nginx
     inherit:
-      - template: default
+      - template: singleton
 
   # Cert-manager
   - name: cert-manager
     chart: jetstack/cert-manager
-    namespace: cert-manager
     inherit:
-      - template: default
+      - template: singleton
+
   - name: letsencrypt-issuer
     chart: incubator/raw
     namespace: cert-manager
     version: 0.2.5
     needs: [cert-manager]
     inherit:
-      - template: default
+      - template: singleton
+
+  # Loki
+  - name: loki
+    chart: grafana/loki
+    inherit:
+      - template: singleton
+    values:
+      - config/loki/values.yaml.gotmpl
+
+  # Promtail
+  - name: promtail
+    chart: grafana/promtail
+    inherit:
+      - template: singleton
+    needs:
+      - loki/loki
+    values:
+      - config/promtail/values.yaml.gotmpl
 
   # Monitoring
   - name: monitoring
     chart: prometheus-community/kube-prometheus-stack
-    namespace: monitoring
     disableValidationOnInstall: true
     inherit:
-      - template: default
+      - template: singleton
+    values:
+      - config/monitoring/values-alertmanager.yaml.gotmpl
+      - config/monitoring/values-grafana.yaml.gotmpl
+      - config/monitoring/values-prometheus.yaml.gotmpl
+      - config/monitoring/values-alerts.yaml.gotmpl
+
+  - name: prometheus-blackbox
+    chart: prometheus-community/prometheus-blackbox-exporter
+    namespace: monitoring
+    labels:
+      env: prod
+    needs:
+      - monitoring/monitoring
+    values:
+      - config/monitoring/values-blackbox.yaml.gotmpl
+
+  - name: grafana-dashboards
+    chart: incubator/raw
+    namespace: monitoring
+    version: 0.2.5
+    labels:
+      env: prod
+    needs:
+      - monitoring/monitoring
+    values:
+      - config/monitoring/dashboards/dashboards-values.yaml.gotmpl
 
   # Postgresql
   - name: postgres
     chart: bitnami/postgresql
     version: 18.3.0
     inherit:
-      - template: default
+      - template: prod_dev
 
-  # Coin Server
-  - name: coin-server
-    chart: ./coin-server
-    namespace: coin-{{ .Environment.Name }}
-    missingFileHandler: Warn
+  - name: postgres-init
+    chart: incubator/raw
+    version: 0.2.5
+    namespace: "postgres-{{ .Environment.Name }}"
+    createNamespace: true
+    needs:
+      - "postgres-{{ .Environment.Name }}/postgres"
     values:
-      - "config/{{ .Release.Name }}/values.yaml.gotmpl"
-      - "config/{{ .Release.Name }}/values-{{ .Environment.Name }}.yaml.gotmpl"
-      - "../../{{ .Release.Name }}/deploy/values.local.yaml"
+      - "config/postgres/init-secret.yaml.gotmpl"
+
+  # Registry Credentials
+  - name: registry-credentials
+    chart: incubator/raw
+    version: 0.2.5
+    inherit:
+      - template: singleton
+
+  # Server
+  - name: coin-server
+    chart: ./charts/coin-server
+    inherit:
+      - template: chart

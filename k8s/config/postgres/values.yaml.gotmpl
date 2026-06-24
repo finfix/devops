@@ -1,5 +1,10 @@
 auth:
-    username: {{ .Values.postgresql.auth.username }}
-    password: {{ .Values.postgresql.auth.password }}
-    database: {{ .Values.postgresql.auth.database }}
-    postgresPassword: {{ .Values.postgresql.auth.postgresPassword }}
+  postgresPassword: {{ .Values.pgsql.users.postgres.password }}
+
+primary:
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi

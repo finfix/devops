@@ -4,11 +4,20 @@ image:
 host: "rest.bonavii.com"
 grpc_host: "grpc.bonavii.com"
 
-tg_bot:
-    enabled: true
-otlp:
-    enabled: false
-log:
-    level: info
-pgsql:
-    endpoint: "postgres-postgresql.postgres-prod.svc.cluster.local:5432"
+envs:
+    PGSQL_HOST: "postgres-postgresql.postgres-prod.svc.cluster.local:5432"
+    OTLP_IS_ENABLED: "false"
+    OTLP_HTTP_ENDPOINT: ""
+    OTLP_INSECURE: ""
+    SERVICE_NAME: "coin"
+    ENVIRONMENT: "prod"
+    TG_BOT_ENABLED: "true"
+    STACK_TRACE_ENABLED: "true"
+    LOG_LEVEL: "debug"
+    LOG_FORMAT: "json"
+    LISTEN_HTTP: "0.0.0.0:8080"
+    LISTEN_GRPC: "0.0.0.0:8090"
+    AUTH_REFRESH_TOKEN_TTL: "720h"
+    AUTH_ACCESS_TOKEN_TTL: "30m"
+    NOTIFICATIONS_ENABLED: "false"
+    NOTIFICATIONS_APNS_KEY_FILE_PATH: ""

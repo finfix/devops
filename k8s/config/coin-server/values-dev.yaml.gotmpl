@@ -4,15 +4,20 @@ image:
 host: "rest.dev.bonavii.com"
 grpc_host: "grpc.dev.bonavii.com"
 
-tg_bot:
-    enabled: false
-otlp:
-    enabled: false
-log:
-    level: debug
-pgsql:
-    endpoint: "postgres-postgresql.postgres-dev.svc.cluster.local:5432"
-image_credentials:
-    registry: "{{ .Values.image_credentials.registry }}"
-    username: "{{ .Values.image_credentials.username }}"
-    password: "{{ .Values.image_credentials.password }}"
+envs:
+    PGSQL_HOST: "postgres-postgresql.postgres-dev.svc.cluster.local:5432"
+    OTLP_IS_ENABLED: "false"
+    OTLP_HTTP_ENDPOINT: ""
+    OTLP_INSECURE: ""
+    SERVICE_NAME: "coin"
+    ENVIRONMENT: "dev"
+    TG_BOT_ENABLED: "false"
+    STACK_TRACE_ENABLED: "true"
+    LOG_LEVEL: "debug"
+    LOG_FORMAT: "json"
+    LISTEN_HTTP: "0.0.0.0:8080"
+    LISTEN_GRPC: "0.0.0.0:8090"
+    AUTH_REFRESH_TOKEN_TTL: "720h"
+    AUTH_ACCESS_TOKEN_TTL: "30m"
+    NOTIFICATIONS_ENABLED: "false"
+    NOTIFICATIONS_APNS_KEY_FILE_PATH: ""

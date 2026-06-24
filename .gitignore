@@ -1,2 +1,2 @@
 ansible/config/.vault_password
-k8s/config/key.txt
+k8s/secrets/key.txt
