@@ -145,7 +145,6 @@ jobs:
 
           curl -s -X POST -H "Content-Type: application/json" -d "{
             \"chat_id\": \"${{ secrets.TG_CHAT_ID }}\",
-            \"message_thread_id\": \"${{ secrets.TG_TOPIC_ID }}\",
             \"parse_mode\": \"HTML\",
             \"text\": \"$MESSAGE\",
             \"disable_notification\": true,

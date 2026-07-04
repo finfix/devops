@@ -36,17 +36,18 @@ uninstall-dev:
 	helm uninstall dev -n dev
 
 # Генерация kubeconfig для пользователя (make kubeconfig KUBE_USER=maxpayne)
-KUBE_USER ?= devops
+KUBE_USER ?= backuper
+CLUSTER ?= coin
 kubeconfig:
 	kubectl get secret $(KUBE_USER)-token -n default -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/$(KUBE_USER)-ca.crt
-	kubectl --kubeconfig=/tmp/$(KUBE_USER).yaml config set-cluster coin \
+	kubectl --kubeconfig=/tmp/$(KUBE_USER).yaml config set-cluster $(CLUSTER) \
 		--server=$(shell kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}') \
 		--certificate-authority=/tmp/$(KUBE_USER)-ca.crt \
 		--embed-certs=true
 	kubectl --kubeconfig=/tmp/$(KUBE_USER).yaml config set-credentials $(KUBE_USER) \
 		--token=$(shell kubectl get secret $(KUBE_USER)-token -n default -o jsonpath='{.data.token}' | base64 -d)
 	kubectl --kubeconfig=/tmp/$(KUBE_USER).yaml config set-context default \
-		--cluster=coin \
+		--cluster=$(CLUSTER) \
 		--user=$(KUBE_USER)
 	kubectl --kubeconfig=/tmp/$(KUBE_USER).yaml config use-context default
 	rm /tmp/$(KUBE_USER)-ca.crt
