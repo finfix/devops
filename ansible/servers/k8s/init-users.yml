@@ -1,0 +1,11 @@
+---
+- name: Initial server setup as root
+  hosts: coin-1
+  become: yes
+  vars:
+    ansible_user: devops
+    ansible_port: 2002
+    ansible_ssh_private_key_file: ~/.ssh/id_ed25519_devops_coin
+
+  roles:
+    - role: users

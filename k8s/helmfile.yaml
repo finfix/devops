@@ -168,3 +168,11 @@ releases:
     chart: ./charts/coin-server
     inherit:
       - template: chart
+
+  # For RPI
+  - name: homeassistant-proxy
+    chart: incubator/raw
+    version: 0.2.5
+    namespace: homeassistant
+    inherit:
+      - template: singleton
