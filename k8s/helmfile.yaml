@@ -112,6 +112,10 @@ releases:
     disableValidationOnInstall: true
     inherit:
       - template: singleton
+    # Grafana хранит своё состояние в postgres-prod, БД и пользователь
+    # создаются джобой postgres-init
+    needs:
+      - postgres-prod/postgres-init
     values:
       - config/monitoring/values-alertmanager.yaml.gotmpl
       - config/monitoring/values-grafana.yaml.gotmpl
@@ -160,14 +164,19 @@ releases:
   - name: registry-credentials
     chart: incubator/raw
     version: 0.2.5
+    # Секрет для pull образов должен лежать в namespace пода,
+    # поэтому namespace здесь — окружение, как у coin-server
     inherit:
-      - template: singleton
+      - template: chart
 
   # Server
   - name: coin-server
-    chart: ./charts/coin-server
+    chart: ./charts/app
     inherit:
       - template: chart
+    needs:
+      - "postgres-{{ .Environment.Name }}/postgres-init"
+      - "{{ .Environment.Name }}/registry-credentials"
 
   # For RPI
   - name: homeassistant-proxy

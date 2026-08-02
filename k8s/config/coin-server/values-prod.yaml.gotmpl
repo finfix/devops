@@ -1,8 +1,20 @@
 image:
     repository: ghcr.io/finfix/go-server
 
-host: "rest.bonavii.com"
-grpc_host: "grpc.bonavii.com"
+ingresses:
+    - enabled: true
+      className: nginx
+      annotations:
+          cert-manager.io/cluster-issuer: letsencrypt
+      hosts:
+          - host: grpc.bonavii.com
+            paths:
+                - path: /
+                  pathType: Prefix
+      tls:
+          - hosts:
+                - grpc.bonavii.com
+            secretName: envoy-tls
 
 envs:
     PGSQL_HOST: "postgres-postgresql.postgres-prod.svc.cluster.local:5432"

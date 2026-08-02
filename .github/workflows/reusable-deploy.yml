@@ -12,6 +12,11 @@ on:
       devops_repository:
         required: true
         type: string
+      # Механизм деплоя: helmfile (k8s) или ansible (docker compose на серверах)
+      deploy_method:
+        required: false
+        type: string
+        default: 'helmfile'
       build_mode:
         required: false
         type: string
@@ -47,7 +52,7 @@ jobs:
           BUILD=$(git rev-parse --short HEAD)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "BUILD=$BUILD" >> $GITHUB_ENV
-          echo "BUILD_DATE=$(git log -1 --format=%cd --date=short)" >> $GITHUB_ENV
+          echo "BUILD_DATE=$(git log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "build_tag=build-$BUILD" >> $GITHUB_OUTPUT
 
@@ -80,8 +85,9 @@ jobs:
             BUILD_MODE=${{ inputs.build_mode }}
             GA_MEASUREMENT_ID=${{ inputs.ga_measurement_id }}
 
-  # Деплой через Helmfile
+  # Деплой через Helmfile (k8s)
   helmfile-deploy:
+    if: inputs.deploy_method == 'helmfile'
     needs: docker-build-and-push
     env:
       VERSION: ${{ needs.docker-build-and-push.outputs.version }}
@@ -110,11 +116,55 @@ jobs:
         id: deploy
         env:
           APP_VERSION: ${{ needs.docker-build-and-push.outputs.build_tag }}
+          RELEASE_TIMEOUT: ${{ vars.RELEASE_TIMEOUT || '180' }}
         run: |
           make ${{ inputs.make_command }}
 
+  # Деплой через Ansible (docker compose на серверах)
+  ansible-deploy:
+    if: inputs.deploy_method == 'ansible'
+    needs: docker-build-and-push
+    runs-on: ubuntu-latest
+    container:
+      image: willhallonline/ansible:latest
+    steps:
+      # Переключаемся в devops репозиторий
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.devops_repository }}
+          token: '${{ secrets.PAT_TOKEN }}'
+
+      # Настраиваем ssh
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519_devops_vpn
+          chmod 600 ~/.ssh/id_ed25519_devops_vpn
+
+      - name: Install Make
+        run: |
+          apk update && apk add make
+
+      # Создаем файл с паролем для Ansible Vault
+      - name: Make file with vault password
+        run: |
+          printf '%s' "${{ secrets.VAULT_PASSWORD }}" > ansible/config/.vault_password
+
+      # Запускаем Ansible playbook
+      - name: Run Ansible playbook
+        run: |
+          ANSIBLE_HOST_KEY_CHECKING=False make ${{ inputs.make_command }}
+
+  # Уведомления о результате деплоя (общая джоба для обоих механизмов)
+  # Запускается всегда: и при упавшем билде образа (оба деплоя skipped), и после деплоя
+  notify:
+    if: always()
+    needs: [docker-build-and-push, helmfile-deploy, ansible-deploy]
+    env:
+      VERSION: ${{ needs.docker-build-and-push.outputs.version }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Notify
-        if: always()
         run: |
           escape_html() {
             printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
@@ -124,7 +174,7 @@ jobs:
           SAFE_VERSION=$(escape_html "$VERSION")
           SAFE_COMMIT_TITLE=$(escape_html "${{ github.event.head_commit.message }}")
 
-          if [ "${{ job.status }}" = "success" ]; then
+          if [ "${{ needs.helmfile-deploy.result }}" = "success" ] || [ "${{ needs.ansible-deploy.result }}" = "success" ]; then
             STATUS_ICON="✅"
             STATUS_TEXT="<b>Задеплоились</b>"
           else
@@ -144,7 +194,8 @@ jobs:
           🔗 ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
 
           curl -s -X POST -H "Content-Type: application/json" -d "{
-            \"chat_id\": \"${{ secrets.TG_CHAT_ID }}\",
+            \"chat_id\": \"${{ vars.TG_CHAT_ID }}\",
+            \"message_thread_id\": \"${{ vars.TG_TOPIC_ID }}\",
             \"parse_mode\": \"HTML\",
             \"text\": \"$MESSAGE\",
             \"disable_notification\": true,
@@ -171,7 +222,7 @@ jobs:
           curl -s -X POST \
             -H "Authorization: Bearer ${{ secrets.GRAFANA_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            "${{ secrets.GRAFANA_URL }}/api/annotations" \
+            "${{ vars.GRAFANA_URL }}/api/annotations" \
             -d "{
               \"time\": ${ANNOTATION_TIME},
               \"text\": \"${JSON_TEXT}\",

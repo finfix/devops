@@ -3,9 +3,9 @@
   hosts: coin-1
   become: yes
   vars:
-    ansible_user: devops
-    ansible_port: 2002
-    ansible_ssh_private_key_file: ~/.ssh/id_ed25519_devops_coin
+    ansible_user: root
+    ansible_port: 22
+    ansible_ssh_private_key_file: ~/.ssh/id_ed25519_bonavi
 
   roles:
     - role: users

@@ -1,7 +1,50 @@
 image:
     tag: {{ env "APP_VERSION" | default "latest" }}
-replicas: 1
-secrets:
+    pullPolicy: Always
+
+replicaCount: 1
+
+imagePullSecrets:
+    - name: registry-credentials
+
+service:
+    enabled: true
+    ports:
+        - name: grpc
+          port: 8090
+          targetPort: 8090
+        - name: http
+          port: 8080
+          targetPort: 8080
+
+deployment:
+    podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+
+# Хэлсчеки: fiber-healthcheck из pkg/http/fiber отдаёт /livez и /readyz на HTTP-порту
+livenessProbe:
+    enabled: true
+    httpGet:
+        path: /livez
+        port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+
+readinessProbe:
+    enabled: true
+    httpGet:
+        path: /readyz
+        port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+
+secretEnv:
     PGSQL_USER: "coin"
     PGSQL_PASSWORD: "{{ .Values.pgsql.users.coin.password }}"
     PGSQL_DATABASE: "coin"
@@ -12,5 +55,3 @@ secrets:
     API_KEY_CURRENCY_PROVIDER: "{{ .Values.coin_server.api_key_currency_provider }}"
     NOTIFICATIONS_APNS_TEAM_ID: "{{ .Values.coin_server.apns.team_id }}"
     NOTIFICATIONS_APNS_KEY_ID: "{{ .Values.coin_server.apns.key_id }}"
-listen:
-    port: 8080
