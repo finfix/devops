@@ -6,6 +6,7 @@ ingresses:
       className: nginx
       annotations:
           cert-manager.io/cluster-issuer: letsencrypt
+          nginx.ingress.kubernetes.io/backend-protocol: GRPC
       hosts:
           - host: grpc.dev.bonavii.com
             paths:
@@ -14,7 +15,7 @@ ingresses:
       tls:
           - hosts:
                 - grpc.dev.bonavii.com
-            secretName: envoy-tls
+            secretName: coin-server-dev-grpc-tls
 
 envs:
     PGSQL_HOST: "postgres-postgresql.postgres-dev.svc.cluster.local:5432"
@@ -28,6 +29,7 @@ envs:
     LOG_LEVEL: "debug"
     LOG_FORMAT: "json"
     LISTEN_HTTP: "0.0.0.0:8080"
+    LISTEN_SERVICE_HTTP: "0.0.0.0:8081"
     LISTEN_GRPC: "0.0.0.0:8090"
     AUTH_REFRESH_TOKEN_TTL: "720h"
     AUTH_ACCESS_TOKEN_TTL: "30m"

@@ -36,7 +36,7 @@ uninstall-dev:
 	helm uninstall dev -n dev
 
 # Генерация kubeconfig для пользователя (make kubeconfig KUBE_USER=maxpayne)
-KUBE_USER ?= backuper
+KUBE_USER ?= devops
 CLUSTER ?= coin
 kubeconfig:
 	kubectl get secret $(KUBE_USER)-token -n default -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/$(KUBE_USER)-ca.crt
