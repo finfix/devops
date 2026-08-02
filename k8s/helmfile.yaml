@@ -114,8 +114,6 @@ releases:
       - template: singleton
     # Grafana хранит своё состояние в postgres-prod, БД и пользователь
     # создаются джобой postgres-init
-    needs:
-      - postgres-prod/postgres-init
     values:
       - config/monitoring/values-alertmanager.yaml.gotmpl
       - config/monitoring/values-grafana.yaml.gotmpl
