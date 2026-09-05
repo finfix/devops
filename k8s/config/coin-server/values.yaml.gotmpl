@@ -21,14 +21,14 @@ deployment:
     podAnnotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: /metrics
-        prometheus.io/port: "8080"
+        prometheus.io/port: "8081"
 
 # Хэлсчеки: fiber-healthcheck из pkg/http/fiber отдаёт /livez и /readyz на HTTP-порту
 livenessProbe:
     enabled: true
     httpGet:
         path: /livez
-        port: http
+        port: 8081
     initialDelaySeconds: 5
     periodSeconds: 10
     timeoutSeconds: 2
@@ -38,7 +38,7 @@ readinessProbe:
     enabled: true
     httpGet:
         path: /readyz
-        port: http
+        port: 8081
     initialDelaySeconds: 5
     periodSeconds: 5
     timeoutSeconds: 2
