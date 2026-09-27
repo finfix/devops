@@ -169,7 +169,7 @@ releases:
 
   # Server
   - name: coin-server
-    chart: ./charts/app
+    chart: ../common/k8s/charts/app
     inherit:
       - template: chart
     needs:
