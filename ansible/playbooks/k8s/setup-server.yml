@@ -13,4 +13,5 @@
     - role: hostname
     - role: fail2ban
     - role: unattended_upgrades
+    - role: firewall
     - role: reboot

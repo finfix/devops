@@ -5,3 +5,6 @@ setup-server:
 
 setup-app:
 	ansible-playbook setup-app.yml
+
+firewall:
+	ansible-playbook firewall.yml
