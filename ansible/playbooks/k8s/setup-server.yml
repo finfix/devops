@@ -13,5 +13,6 @@
     - role: hostname
     - role: fail2ban
     - role: unattended_upgrades
+    - role: wireguard_server
     - role: firewall
     - role: reboot
