@@ -68,7 +68,8 @@ resources:
         resources: ["pods/portforward"]
         verbs: ["create"]
 
-{{ range .Values.cluster_users }}
+# Список пользователей — cluster_users в users.yaml (environments.prod в helmfile.yaml)
+{{ range (dig "cluster_users" (list) .Values) }}
   - apiVersion: v1
     kind: ServiceAccount
     metadata:
