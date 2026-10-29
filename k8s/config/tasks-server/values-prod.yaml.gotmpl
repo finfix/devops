@@ -1,0 +1,30 @@
+image:
+    repository: ghcr.io/jedi-tasks/server
+
+ingresses:
+    - enabled: true
+      className: nginx
+      annotations:
+          cert-manager.io/cluster-issuer: letsencrypt
+          nginx.ingress.kubernetes.io/backend-protocol: GRPC
+      hosts:
+          - host: tasks.bonavii.com
+            paths:
+                - path: /
+                  pathType: Prefix
+      tls:
+          - hosts:
+                - tasks.bonavii.com
+            secretName: tasks-server-tls
+
+envs:
+    PGSQL_HOST: "postgres-postgresql.postgres-prod.svc.cluster.local:5432"
+    SERVICE_NAME: "tasks_server"
+    ENVIRONMENT: "prod"
+    LISTEN_HTTP: "0.0.0.0:8080"
+    LISTEN_SERVICE_HTTP: "0.0.0.0:8081"
+    LISTEN_GRPC: "0.0.0.0:8090"
+    AUTH_REFRESH_TOKEN_TTL: "720h"
+    AUTH_ACCESS_TOKEN_TTL: "30m"
+    # Регистрация открывается вручную на время заведения пользователя
+    AUTH_SIGN_UP_ENABLED: "false"

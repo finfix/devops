@@ -7,4 +7,10 @@ deploy-coin-server:
 deploy-coin-server-dev:
 	@$(COMMON) do-k3s ACTION=apply ENV=dev RELEASE=coin-server
 
-.PHONY: deploy-coin-server deploy-coin-server-dev
+deploy-tasks-server:
+	@$(COMMON) do-k3s ACTION=apply ENV=prod RELEASE=tasks-server
+
+deploy-tasks-server-dev:
+	@$(COMMON) do-k3s ACTION=apply ENV=dev RELEASE=tasks-server
+
+.PHONY: deploy-coin-server deploy-coin-server-dev deploy-tasks-server deploy-tasks-server-dev

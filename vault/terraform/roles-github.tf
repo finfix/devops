@@ -12,6 +12,17 @@ locals {
       refs    = ["refs/tags/v*"]
       secrets = ["ci/coin/read-submodules", "ci/coin/coin-server-prod", "ci/coin/helmfile-sops", "ci/coin/deploy-notify"]
     }
+    # Сервер Tasks живёт в кластере coin, поэтому берёт секреты проекта coin
+    "gh-jedi-tasks-server-deploy-dev" = {
+      repo    = "jedi-tasks/server"
+      refs    = ["refs/heads/release/*", "refs/heads/hotfix/*"]
+      secrets = ["ci/coin/read-submodules", "ci/coin/coin-server-dev", "ci/coin/helmfile-sops", "ci/coin/deploy-notify"]
+    }
+    "gh-jedi-tasks-server-deploy-prod" = {
+      repo    = "jedi-tasks/server"
+      refs    = ["refs/tags/v*"]
+      secrets = ["ci/coin/read-submodules", "ci/coin/coin-server-prod", "ci/coin/helmfile-sops", "ci/coin/deploy-notify"]
+    }
     "gh-jedi-tasks-contracts-generate" = {
       repo    = "jedi-tasks/contracts"
       refs    = ["refs/tags/v*"]
