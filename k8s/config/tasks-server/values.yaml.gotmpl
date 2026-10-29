@@ -48,6 +48,8 @@ secretEnv:
     PGSQL_DATABASE: "tasks"
     AUTH_TOKEN_SIGNING_KEY: "{{ .Values.tasks_server.auth.key }}"
     SHA_SALT: "{{ .Values.tasks_server.auth.salt }}"
+    LOG_LEVEL: info
+    LOG_FORMAT: json
     # Начальный пользователь: сервер создает его при запуске, если email еще не занят.
     # Пустой email — не создавать. Значения — tasks_server.initial_user в secrets-<env>.yaml
     AUTH_INITIAL_USER_NAME: "{{ dig "tasks_server" "initial_user" "name" "" .Values }}"
