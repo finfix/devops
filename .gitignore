@@ -1,2 +1,4 @@
 ansible/config/.vault_password
 k8s/secrets/key.txt
+# Временные папки helmfile write-values
+k8s/helmfile-*/

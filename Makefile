@@ -3,6 +3,10 @@
 
 COMMON := $(MAKE) --no-print-directory -f common/Makefile
 
+# Список задач и параметров (задача по умолчанию)
+help:
+	@$(COMMON) $@
+
 # Секреты ansible-хоста (vault)
 edit-ansible-secrets:
 	@$(COMMON) $@
@@ -19,7 +23,7 @@ run-ansible-playbook:
 do-k3s:
 	@$(COMMON) $@
 
-.PHONY: help edit-ansible-secrets edit-k3s-secrets run-ansible-playbook do-k3s add-vpn-server remove-vpn-server
+.PHONY: help edit-ansible-secrets edit-k3s-secrets run-ansible-playbook do-k3s
 
 # Цели для CI (make_command в workflow сервисов)
 include ci.mk
