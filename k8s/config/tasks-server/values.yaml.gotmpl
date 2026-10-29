@@ -13,6 +13,10 @@ service:
         - name: grpc
           port: 8090
           targetPort: 8090
+        # MCP для агентов: Streamable HTTP с Bearer-токенами, свой ingress mcp.<host>
+        - name: mcp
+          port: 8092
+          targetPort: 8092
 
 deployment:
     podAnnotations:
@@ -48,6 +52,8 @@ secretEnv:
     PGSQL_DATABASE: "tasks"
     AUTH_TOKEN_SIGNING_KEY: "{{ .Values.tasks_server.auth.key }}"
     SHA_SALT: "{{ .Values.tasks_server.auth.salt }}"
+    # Токены MCP и их владельцы: "<токен>:<email>,<токен>:<email>". Пусто — MCP не запускается
+    MCP_TOKENS: "{{ .Values.tasks_server.mcp.tokens }}"
     LOG_LEVEL: info
     LOG_FORMAT: json
     # Начальный пользователь: сервер создает его при запуске, если email еще не занят.

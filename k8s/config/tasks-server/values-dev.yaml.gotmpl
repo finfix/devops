@@ -16,6 +16,22 @@ ingresses:
           - hosts:
                 - tasks.dev.bonavii.com
             secretName: tasks-server-dev-tls
+    # MCP: обычный HTTP на порт 8092, без gRPC-аннотации
+    - name: mcp
+      enabled: true
+      className: nginx
+      servicePort: 8092
+      annotations:
+          cert-manager.io/cluster-issuer: letsencrypt
+      hosts:
+          - host: mcp.tasks.dev.bonavii.com
+            paths:
+                - path: /
+                  pathType: Prefix
+      tls:
+          - hosts:
+                - mcp.tasks.dev.bonavii.com
+            secretName: tasks-server-dev-mcp-tls
 
 envs:
     PGSQL_HOST: "postgres-postgresql.postgres-dev.svc.cluster.local:5432"
@@ -24,6 +40,7 @@ envs:
     LISTEN_HTTP: "0.0.0.0:8080"
     LISTEN_SERVICE_HTTP: "0.0.0.0:8081"
     LISTEN_GRPC: "0.0.0.0:8090"
+    LISTEN_MCP: "0.0.0.0:8092"
     AUTH_REFRESH_TOKEN_TTL: "720h"
     AUTH_ACCESS_TOKEN_TTL: "30m"
     # Регистрация открывается вручную на время заведения пользователя
