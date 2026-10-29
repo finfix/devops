@@ -31,13 +31,21 @@ on:
         required: false
         type: string
         default: ''
-      # Проект в Vault: секреты лежат в secret/ci/<проект>/* (vault/terraform/secrets.tf)
-      vault_project:
+      # Полные пути секретов в Vault (vault/terraform/secrets.tf), например ci/coin/read-submodules.
+      # Ключи внутри: PAT_TOKEN, KUBECONFIG, SOPS_AGE, TG_*/GRAFANA_*
+      vault_pat_secret:
         required: false
         type: string
         default: ''
-      # Секрет с KUBECONFIG для helmfile-деплоя, например coin-server-dev
-      vault_kubeconfig:
+      vault_kubeconfig_secret:
+        required: false
+        type: string
+        default: ''
+      vault_sops_secret:
+        required: false
+        type: string
+        default: ''
+      vault_notify_secret:
         required: false
         type: string
         default: ''
@@ -72,7 +80,7 @@ jobs:
           role: ${{ inputs.vault_role }}
           jwtGithubAudience: https://github.com/${{ github.repository_owner }}
           secrets: |
-            secret/data/ci/${{ inputs.vault_project }}/read-submodules PAT_TOKEN
+            secret/data/${{ inputs.vault_pat_secret }} PAT_TOKEN
 
       - uses: actions/checkout@v4
 
@@ -140,9 +148,9 @@ jobs:
           role: ${{ inputs.vault_role }}
           jwtGithubAudience: https://github.com/${{ github.repository_owner }}
           secrets: |
-            secret/data/ci/${{ inputs.vault_project }}/read-submodules PAT_TOKEN ;
-            secret/data/ci/${{ inputs.vault_project }}/${{ inputs.vault_kubeconfig }} KUBECONFIG | KUBECONFIG_CONTENT ;
-            secret/data/ci/${{ inputs.vault_project }}/helmfile-sops SOPS_AGE
+            secret/data/${{ inputs.vault_pat_secret }} PAT_TOKEN ;
+            secret/data/${{ inputs.vault_kubeconfig_secret }} KUBECONFIG | KUBECONFIG_CONTENT ;
+            secret/data/${{ inputs.vault_sops_secret }} SOPS_AGE
 
       - uses: actions/checkout@v4
         with:
@@ -231,11 +239,11 @@ jobs:
           role: ${{ inputs.vault_role }}
           jwtGithubAudience: https://github.com/${{ github.repository_owner }}
           secrets: |
-            secret/data/ci/${{ inputs.vault_project }}/deploy-notify TG_BOT_TOKEN ;
-            secret/data/ci/${{ inputs.vault_project }}/deploy-notify TG_CHAT_ID ;
-            secret/data/ci/${{ inputs.vault_project }}/deploy-notify TG_TOPIC_ID ;
-            secret/data/ci/${{ inputs.vault_project }}/deploy-notify GRAFANA_API_TOKEN ;
-            secret/data/ci/${{ inputs.vault_project }}/deploy-notify GRAFANA_URL
+            secret/data/${{ inputs.vault_notify_secret }} TG_BOT_TOKEN ;
+            secret/data/${{ inputs.vault_notify_secret }} TG_CHAT_ID ;
+            secret/data/${{ inputs.vault_notify_secret }} TG_TOPIC_ID ;
+            secret/data/${{ inputs.vault_notify_secret }} GRAFANA_API_TOKEN ;
+            secret/data/${{ inputs.vault_notify_secret }} GRAFANA_URL
 
       - name: Notify
         run: |

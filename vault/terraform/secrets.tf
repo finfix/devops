@@ -10,7 +10,9 @@ locals {
     "ci/coin/helmfile-sops",    # SOPS_AGE — ключ k8s/secrets/*.yaml (убрать после переезда на ESO)
     "ci/coin/deploy-notify",    # TG_BOT_TOKEN, TG_CHAT_ID, TG_TOPIC_ID, GRAFANA_API_TOKEN, GRAFANA_URL
 
-    "ci/jedi-tasks/github-pat", # PAT_TOKEN — пуш в go-server-grpc и swift-client-grpc
+    "ci/jedi-tasks/github-pat",                   # PAT_TOKEN — пуш в go-server-grpc и swift-client-grpc, сборка и деплой сервера Tasks
+    "ci/jedi-tasks/tasks-server-dev-kubeconfig",  # KUBECONFIG — ns dev кластера coin
+    "ci/jedi-tasks/tasks-server-prod-kubeconfig", # KUBECONFIG — ns prod кластера coin
   ]
 }
 
