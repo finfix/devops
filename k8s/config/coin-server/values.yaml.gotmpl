@@ -44,14 +44,16 @@ readinessProbe:
     timeoutSeconds: 2
     failureThreshold: 3
 
-secretEnv:
+# БД coin и пользователь coin создаются джобой postgres-init (pgsql_users в helmfile)
+envs:
     PGSQL_USER: "coin"
-    PGSQL_PASSWORD: "{{ .Values.pgsql.users.coin.password }}"
     PGSQL_DATABASE: "coin"
-    AUTH_TOKEN_SIGNING_KEY: "{{ .Values.coin_server.auth.key }}"
-    SHA_SALT: "{{ .Values.coin_server.auth.salt }}"
-    TG_BOT_TOKEN: "{{ .Values.coin_server.telegram_bot.token }}"
-    TG_CHAT_ID: "{{ .Values.coin_server.telegram_bot.chat_id }}"
-    API_KEY_CURRENCY_PROVIDER: "{{ .Values.coin_server.api_key_currency_provider }}"
-    NOTIFICATIONS_APNS_TEAM_ID: "{{ .Values.coin_server.apns.team_id }}"
-    NOTIFICATIONS_APNS_KEY_ID: "{{ .Values.coin_server.apns.key_id }}"
+
+# Секреты — из Vault через VSO (релиз vault-secrets, vault/README.md):
+# coin-server-vault — secret/coin/coin-server/<окружение>, ключи = имена переменных;
+# coin-server-db — PGSQL_PASSWORD из secret/infra/postgres/<окружение>/coin
+extraEnvFrom:
+    - secretRef:
+          name: coin-server-vault
+    - secretRef:
+          name: coin-server-db

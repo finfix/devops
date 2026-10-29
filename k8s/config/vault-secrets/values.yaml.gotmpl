@@ -9,6 +9,7 @@
   (dict "name" "coin-server" "role" (printf "k8s-coin-coin-server-%s" $env) "namespace" $env)
   (dict "name" "tasks-server" "role" (printf "k8s-jedi-tasks-tasks-server-%s" $env) "namespace" $env)
   (dict "name" "postgres" "role" (printf "k8s-infra-postgres-%s" $env) "namespace" $pgNs)
+  (dict "name" "registry-credentials" "role" (printf "k8s-infra-registry-%s" $env) "namespace" $env)
 }}
 {{- if eq $env "prod" }}
 {{- $auths = append $auths (dict "name" "grafana" "role" "k8s-infra-grafana-prod" "namespace" "monitoring") }}
@@ -31,6 +32,9 @@
         "restart" (list (dict "kind" "Deployment" "name" "tasks-server")))
   (dict "auth" "postgres" "path" (printf "infra/postgres/%s/postgres" $env) "dest" "postgres-auth"
         "templates" (dict "postgres-password" `{{ get .Secrets "password" }}`))
+  (dict "auth" "registry-credentials" "path" (printf "infra/registry/%s" $env) "dest" "registry-credentials"
+        "type" "kubernetes.io/dockerconfigjson"
+        "templates" (dict ".dockerconfigjson" `{"auths":{"{{ get .Secrets "registry" }}":{"auth":"{{ printf "%s:%s" (get .Secrets "username") (get .Secrets "password") | b64enc }}"}}}`))
 }}
 {{- /* Пароли пользователей БД для postgres-init: Secret postgres-user-<пользователь>, ключ password */}}
 {{- range $user := .Values.pgsql_users }}

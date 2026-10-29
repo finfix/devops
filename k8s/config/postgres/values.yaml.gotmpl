@@ -1,5 +1,7 @@
+# Пароль суперпользователя postgres — Secret postgres-auth (ключ postgres-password) от VSO,
+# из Vault secret/infra/postgres/<окружение>/postgres (релиз vault-secrets)
 auth:
-  postgresPassword: {{ .Values.pgsql.users.postgres.password }}
+  existingSecret: postgres-auth
 
 primary:
   resources:
