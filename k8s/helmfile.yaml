@@ -1,8 +1,14 @@
 environments:
   dev:
+    values:
+      # Пользователи БД (и одноимённые БД), которых создаёт postgres-init.
+      # Пароли — Vault secret/infra/postgres/<окружение>/<пользователь>, ключ password
+      - pgsql_users: [coin, tasks]
     secrets:
       - "secrets/secrets-dev.yaml"
   prod:
+    values:
+      - pgsql_users: [coin, tasks, grafana]
     secrets:
       - "secrets/secrets-prod.yaml"
 
@@ -149,6 +155,25 @@ releases:
     version: 0.34.1
     inherit:
       - template: singleton
+
+  # Vault Secrets Operator — секреты из Vault в обычные Secret (vault/README.md)
+  - name: vault-secrets-operator
+    chart: hashicorp/vault-secrets-operator
+    version: 1.6.0
+    inherit:
+      - template: singleton
+    needs:
+      - vault/vault
+
+  # Секреты окружения из Vault: ServiceAccount, VaultAuth и VaultStaticSecret на каждого потребителя.
+  # Ресурсы лежат в namespace потребителей (окружение, postgres-<окружение>, monitoring)
+  - name: vault-secrets
+    chart: incubator/raw
+    version: 0.2.5
+    inherit:
+      - template: chart
+    needs:
+      - vault-secrets-operator/vault-secrets-operator
 
   # Postgresql
   - name: postgres

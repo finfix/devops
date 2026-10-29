@@ -17,3 +17,10 @@ config:
       http:
         valid_status_codes: [200, 201, 204, 415]
         preferred_ip_protocol: ip4
+
+    # Vault /v1/sys/health: успех — только распечатанный инициализированный Vault (200 active, 429 standby)
+    vault_unsealed:
+      prober: http
+      http:
+        valid_status_codes: [200, 429]
+        preferred_ip_protocol: ip4

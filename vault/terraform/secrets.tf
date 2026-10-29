@@ -1,20 +1,37 @@
-# Секрет = единица доступа. На каждый — политика на чтение с именем пути через дефис:
-# ci/jedi-tasks/github-pat → ci-jedi-tasks-github-pat
+# Секреты CI. Секрет = единица доступа. На каждый — политика на чтение с именем пути через дефис:
+# jedi-tasks/ci/github-pat → jedi-tasks-ci-github-pat
+# Схема путей — vault/README.md: <проект>/ci/<имя>; общая инфраструктура кластера — проект infra.
 # Ключ внутри секрета называется как переменная в CI (PAT_TOKEN, KUBECONFIG, ...)
-# Значения кладутся руками: vault kv put secret/<путь> KEY=...
+# Значения кладутся руками (vault kv put secret/<путь> KEY=...) или скриптом vault/migrate-from-sops.sh
 locals {
-  secrets = [
-    "ci/coin/github-pat",                  # PAT_TOKEN — чтение приватных сабмодулей finfix
-    "ci/coin/coin-server-dev-kubeconfig",  # KUBECONFIG — ns dev
-    "ci/coin/coin-server-prod-kubeconfig", # KUBECONFIG — ns prod
-    "ci/coin/helmfile-sops",               # SOPS_AGE — ключ k8s/secrets/*.yaml (убрать после переезда на ESO)
-    "ci/coin/deploy-notify",               # TG_BOT_TOKEN, TG_CHAT_ID, TG_TOPIC_ID, GRAFANA_API_TOKEN, GRAFANA_URL
-    "ci/coin/wireguard-ci",                # WG_CONFIG — конфиг пира github-ci (10.10.10.6) для доступа к kube-apiserver
+  ci_secrets = [
+    "coin/ci/github-pat",                  # PAT_TOKEN — чтение приватных сабмодулей finfix
+    "coin/ci/coin-server-dev-kubeconfig",  # KUBECONFIG — ns dev
+    "coin/ci/coin-server-prod-kubeconfig", # KUBECONFIG — ns prod
 
-    "ci/jedi-tasks/github-pat",                   # PAT_TOKEN — пуш в go-server-grpc и swift-client-grpc, сборка и деплой сервера Tasks
-    "ci/jedi-tasks/tasks-server-dev-kubeconfig",  # KUBECONFIG — ns dev кластера coin
-    "ci/jedi-tasks/tasks-server-prod-kubeconfig", # KUBECONFIG — ns prod кластера coin
+    "jedi-tasks/ci/github-pat",                   # PAT_TOKEN — пуш в go-server-grpc и swift-client-grpc, сборка и деплой сервера Tasks
+    "jedi-tasks/ci/tasks-server-dev-kubeconfig",  # KUBECONFIG — ns dev кластера coin
+    "jedi-tasks/ci/tasks-server-prod-kubeconfig", # KUBECONFIG — ns prod кластера coin
+
+    "infra/ci/deploy-notify", # TG_BOT_TOKEN, TG_CHAT_ID, TG_TOPIC_ID, GRAFANA_API_TOKEN, GRAFANA_URL
+    "infra/ci/wireguard",     # WG_CONFIG — конфиг пира github-ci (10.10.10.6) для доступа к kube-apiserver
   ]
+
+  # Старые пути ci/<проект>/<имя>. Живут, пока вызывающие workflow (в том числе prod-workflow на main
+  # и теги, с которых может пойти хотфикс) не переедут на новые пути. Удаляются в PR «удаление SOPS»
+  legacy_ci_secrets = [
+    "ci/coin/github-pat",
+    "ci/coin/coin-server-dev-kubeconfig",
+    "ci/coin/coin-server-prod-kubeconfig",
+    "ci/coin/helmfile-sops", # SOPS_AGE — ключ k8s/secrets/*.yaml
+    "ci/coin/deploy-notify",
+    "ci/coin/wireguard-ci",
+    "ci/jedi-tasks/github-pat",
+    "ci/jedi-tasks/tasks-server-dev-kubeconfig",
+    "ci/jedi-tasks/tasks-server-prod-kubeconfig",
+  ]
+
+  secrets = concat(local.ci_secrets, local.legacy_ci_secrets)
 }
 
 resource "vault_policy" "secret_read" {
