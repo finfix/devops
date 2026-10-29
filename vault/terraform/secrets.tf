@@ -3,13 +3,12 @@
 # Значения кладутся руками: vault kv put secret/<путь> KEY=...
 locals {
   secrets = [
-    "ci/coin/read-submodules",  # TOKEN — чтение приватных сабмодулей finfix
-    "ci/coin/coin-server-dev",  # KUBECONFIG — ns dev
-    "ci/coin/coin-server-prod", # KUBECONFIG — ns prod
-    "ci/coin/helmfile-sops",    # SOPS_AGE — ключ k8s/secrets/*.yaml (убрать после переезда на ESO)
-    "ci/coin/deploy-notify",    # TG_BOT_TOKEN, TG_CHAT_ID, TG_TOPIC_ID, GRAFANA_TOKEN, GRAFANA_URL
-
-    "ci/jedi-tasks/github-pat", # TOKEN — пуш в go-server-grpc и swift-client-grpc
+    "ci/github/finfix/read-submodules", # TOKEN — чтение приватных сабмодулей finfix
+    "ci/github/jedi-tasks/push-grpc",   # TOKEN — пуш в go-server-grpc и swift-client-grpc
+    "ci/k8s/coin/coin-server-dev",      # KUBECONFIG — ns dev
+    "ci/k8s/coin/coin-server-prod",     # KUBECONFIG — ns prod
+    "ci/k8s/coin/helmfile-sops",        # SOPS_AGE — ключ k8s/secrets/*.yaml (убрать после переезда на ESO)
+    "ci/notify/deploy",                 # TG_BOT_TOKEN, TG_CHAT_ID, TG_TOPIC_ID, GRAFANA_TOKEN, GRAFANA_URL
   ]
 }
 
