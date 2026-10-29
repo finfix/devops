@@ -25,9 +25,26 @@ on:
         required: false
         type: string
         default: ''
+      # Роль Vault для этого кейса (vault/terraform/roles-github.tf), например gh-finfix-go-server-deploy-dev.
+      # Пусто — секреты берутся только из GitHub
+      vault_role:
+        required: false
+        type: string
+        default: ''
+      # Проект в Vault: секреты лежат в secret/ci/<проект>/* (vault/terraform/secrets.tf)
+      vault_project:
+        required: false
+        type: string
+        default: ''
+      # Секрет с KUBECONFIG для helmfile-деплоя, например coin-server-dev
+      vault_kubeconfig:
+        required: false
+        type: string
+        default: ''
 
 env:
   REGISTRY: ghcr.io
+  VAULT_ADDR: https://vault.bonavii.com
 
 jobs:
 
@@ -41,8 +58,22 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     steps:
+      # Секреты из Vault по GitHub OIDC; если не вышло — берутся секреты GitHub
+      - name: Import secrets from Vault
+        uses: hashicorp/vault-action@v3
+        if: inputs.vault_role != ''
+        continue-on-error: true
+        with:
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: ${{ inputs.vault_role }}
+          jwtGithubAudience: https://github.com/${{ github.repository_owner }}
+          secrets: |
+            secret/data/ci/${{ inputs.vault_project }}/read-submodules PAT_TOKEN
+
       - uses: actions/checkout@v4
 
       - name: Extract version from ref
@@ -78,7 +109,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ inputs.image_name }}:latest
             ${{ env.REGISTRY }}/${{ inputs.image_name }}:build-${{ env.BUILD }}
           build-args: |
-            CI_JOB_TOKEN=${{ secrets.PAT_TOKEN }}
+            CI_JOB_TOKEN=${{ env.PAT_TOKEN || secrets.PAT_TOKEN }}
             VERSION=${{ env.VERSION }}
             BUILD=${{ env.BUILD }}
             BUILD_DATE=${{ env.BUILD_DATE }}
@@ -92,14 +123,31 @@ jobs:
     env:
       VERSION: ${{ needs.docker-build-and-push.outputs.version }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     container:
       image: ghcr.io/helmfile/helmfile:latest
     steps:
+      # Секреты из Vault по GitHub OIDC; если не вышло — берутся секреты GitHub
+      - name: Import secrets from Vault
+        uses: hashicorp/vault-action@v3
+        if: inputs.vault_role != ''
+        continue-on-error: true
+        with:
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: ${{ inputs.vault_role }}
+          jwtGithubAudience: https://github.com/${{ github.repository_owner }}
+          secrets: |
+            secret/data/ci/${{ inputs.vault_project }}/read-submodules PAT_TOKEN ;
+            secret/data/ci/${{ inputs.vault_project }}/${{ inputs.vault_kubeconfig }} KUBECONFIG | KUBECONFIG_CONTENT ;
+            secret/data/ci/${{ inputs.vault_project }}/helmfile-sops SOPS_AGE
+
       - uses: actions/checkout@v4
         with:
           repository: ${{ inputs.devops_repository }}
-          token: '${{ secrets.PAT_TOKEN }}'
-          submodules: true
+          token: '${{ env.PAT_TOKEN || secrets.PAT_TOKEN }}'
 
       - name: Install make
         run: apk add --no-cache make
@@ -107,11 +155,11 @@ jobs:
       - name: Setup kubeconfig
         run: |
           mkdir -p ~/.kube
-          printf '%s' "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+          printf '%s' "${{ env.KUBECONFIG_CONTENT || secrets.KUBECONFIG }}" > ~/.kube/config
 
       - name: Setup SOPS age key
         run: |
-          printf '%s' "${{ secrets.SOPS_AGE }}" > k8s/secrets/key.txt
+          printf '%s' "${{ env.SOPS_AGE || secrets.SOPS_AGE }}" > k8s/secrets/key.txt
 
       - name: Deploy
         id: deploy
@@ -126,20 +174,25 @@ jobs:
     if: inputs.deploy_method == 'ansible'
     needs: docker-build-and-push
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     container:
       image: willhallonline/ansible:latest
     steps:
+      # Секретов для ansible в Vault пока нет — берутся секреты GitHub
+
       # Переключаемся в devops репозиторий
       - uses: actions/checkout@v4
         with:
           repository: ${{ inputs.devops_repository }}
-          token: '${{ secrets.PAT_TOKEN }}'
+          token: '${{ env.PAT_TOKEN || secrets.PAT_TOKEN }}'
 
       # Настраиваем ssh
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519_devops_vpn
+          echo "${{ env.SSH_KEY || secrets.SSH_KEY }}" > ~/.ssh/id_ed25519_devops_vpn
           chmod 600 ~/.ssh/id_ed25519_devops_vpn
 
       - name: Install Make
@@ -149,7 +202,7 @@ jobs:
       # Создаем файл с паролем для Ansible Vault
       - name: Make file with vault password
         run: |
-          printf '%s' "${{ secrets.VAULT_PASSWORD }}" > ansible/config/.vault_password
+          printf '%s' "${{ env.ANSIBLE_VAULT_PASSWORD || secrets.VAULT_PASSWORD }}" > ansible/config/.vault_password
 
       # Запускаем Ansible playbook
       - name: Run Ansible playbook
@@ -164,7 +217,26 @@ jobs:
     env:
       VERSION: ${{ needs.docker-build-and-push.outputs.version }}
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
+      # Секреты из Vault по GitHub OIDC; если не вышло — берутся секреты GitHub
+      - name: Import secrets from Vault
+        uses: hashicorp/vault-action@v3
+        if: inputs.vault_role != ''
+        continue-on-error: true
+        with:
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: ${{ inputs.vault_role }}
+          jwtGithubAudience: https://github.com/${{ github.repository_owner }}
+          secrets: |
+            secret/data/ci/${{ inputs.vault_project }}/deploy-notify TG_BOT_TOKEN ;
+            secret/data/ci/${{ inputs.vault_project }}/deploy-notify TG_CHAT_ID ;
+            secret/data/ci/${{ inputs.vault_project }}/deploy-notify TG_TOPIC_ID ;
+            secret/data/ci/${{ inputs.vault_project }}/deploy-notify GRAFANA_API_TOKEN ;
+            secret/data/ci/${{ inputs.vault_project }}/deploy-notify GRAFANA_URL
+
       - name: Notify
         run: |
           escape_html() {
@@ -195,13 +267,13 @@ jobs:
           🔗 ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
 
           curl -s -X POST -H "Content-Type: application/json" -d "{
-            \"chat_id\": \"${{ vars.TG_CHAT_ID }}\",
-            \"message_thread_id\": \"${{ vars.TG_TOPIC_ID }}\",
+            \"chat_id\": \"${{ env.TG_CHAT_ID || vars.TG_CHAT_ID }}\",
+            \"message_thread_id\": \"${{ env.TG_TOPIC_ID || vars.TG_TOPIC_ID }}\",
             \"parse_mode\": \"HTML\",
             \"text\": \"$MESSAGE\",
             \"disable_notification\": true,
             \"disable_web_page_preview\": true
-          }" https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendMessage
+          }" https://api.telegram.org/bot${{ env.TG_BOT_TOKEN || secrets.TG_BOT_TOKEN }}/sendMessage
 
           GRAFANA_MESSAGE="$STATUS_ICON Deploy
           🧩 Project: ${{ github.event.repository.name }}
@@ -221,9 +293,9 @@ jobs:
           ANNOTATION_TIME=$(($(date +%s) * 1000))
 
           curl -s -X POST \
-            -H "Authorization: Bearer ${{ secrets.GRAFANA_API_TOKEN }}" \
+            -H "Authorization: Bearer ${{ env.GRAFANA_API_TOKEN || secrets.GRAFANA_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            "${{ vars.GRAFANA_URL }}/api/annotations" \
+            "${{ env.GRAFANA_URL || vars.GRAFANA_URL }}/api/annotations" \
             -d "{
               \"time\": ${ANNOTATION_TIME},
               \"text\": \"${JSON_TEXT}\",
