@@ -4,7 +4,7 @@
 # Значения кладутся руками: vault kv put secret/<путь> KEY=...
 locals {
   secrets = [
-    "ci/coin/read-submodules",             # PAT_TOKEN — чтение приватных сабмодулей finfix
+    "ci/coin/github-pat",                  # PAT_TOKEN — чтение приватных сабмодулей finfix
     "ci/coin/coin-server-dev-kubeconfig",  # KUBECONFIG — ns dev
     "ci/coin/coin-server-prod-kubeconfig", # KUBECONFIG — ns prod
     "ci/coin/helmfile-sops",               # SOPS_AGE — ключ k8s/secrets/*.yaml (убрать после переезда на ESO)
