@@ -25,9 +25,19 @@ on:
         required: false
         type: string
         default: ''
-      # Сервис в Vault: роль ci-<сервис>, секреты secret/ci/<сервис>/* (см. vault/README.md).
+      # Роль Vault для этого кейса (vault/terraform/roles-github.tf), например gh-finfix-server-deploy-dev.
       # Пусто — секреты берутся только из GitHub
-      vault_service:
+      vault_role:
+        required: false
+        type: string
+        default: ''
+      # Проект в Vault: секреты лежат в secret/ci/<проект>/* (vault/terraform/secrets.tf)
+      vault_project:
+        required: false
+        type: string
+        default: ''
+      # Секрет с KUBECONFIG для helmfile-деплоя, например coin-server-dev
+      vault_kubeconfig:
         required: false
         type: string
         default: ''
@@ -54,15 +64,15 @@ jobs:
       # Секреты из Vault по GitHub OIDC; если не вышло — берутся секреты GitHub
       - name: Import secrets from Vault
         uses: hashicorp/vault-action@v3
-        if: inputs.vault_service != ''
+        if: inputs.vault_role != ''
         continue-on-error: true
         with:
           url: ${{ env.VAULT_ADDR }}
           method: jwt
-          role: ci-${{ inputs.vault_service }}
+          role: ${{ inputs.vault_role }}
           jwtGithubAudience: https://github.com/${{ github.repository_owner }}
           secrets: |
-            secret/data/ci/${{ inputs.vault_service }}/deploy PAT_TOKEN
+            secret/data/ci/${{ inputs.vault_project }}/read-submodules PAT_TOKEN
 
       - uses: actions/checkout@v4
 
@@ -122,17 +132,17 @@ jobs:
       # Секреты из Vault по GitHub OIDC; если не вышло — берутся секреты GitHub
       - name: Import secrets from Vault
         uses: hashicorp/vault-action@v3
-        if: inputs.vault_service != ''
+        if: inputs.vault_role != ''
         continue-on-error: true
         with:
           url: ${{ env.VAULT_ADDR }}
           method: jwt
-          role: ci-${{ inputs.vault_service }}
+          role: ${{ inputs.vault_role }}
           jwtGithubAudience: https://github.com/${{ github.repository_owner }}
           secrets: |
-            secret/data/ci/${{ inputs.vault_service }}/deploy PAT_TOKEN ;
-            secret/data/ci/${{ inputs.vault_service }}/deploy KUBECONFIG | KUBECONFIG_CONTENT ;
-            secret/data/ci/shared/helmfile SOPS_AGE
+            secret/data/ci/${{ inputs.vault_project }}/read-submodules PAT_TOKEN ;
+            secret/data/ci/${{ inputs.vault_project }}/${{ inputs.vault_kubeconfig }} KUBECONFIG | KUBECONFIG_CONTENT ;
+            secret/data/ci/${{ inputs.vault_project }}/helmfile-sops SOPS_AGE
 
       - uses: actions/checkout@v4
         with:
@@ -170,20 +180,7 @@ jobs:
     container:
       image: willhallonline/ansible:latest
     steps:
-      # Секреты из Vault по GitHub OIDC; если не вышло — берутся секреты GitHub
-      - name: Import secrets from Vault
-        uses: hashicorp/vault-action@v3
-        if: inputs.vault_service != ''
-        continue-on-error: true
-        with:
-          url: ${{ env.VAULT_ADDR }}
-          method: jwt
-          role: ci-${{ inputs.vault_service }}
-          jwtGithubAudience: https://github.com/${{ github.repository_owner }}
-          secrets: |
-            secret/data/ci/${{ inputs.vault_service }}/deploy PAT_TOKEN ;
-            secret/data/ci/${{ inputs.vault_service }}/deploy SSH_KEY ;
-            secret/data/ci/${{ inputs.vault_service }}/deploy ANSIBLE_VAULT_PASSWORD ;
+      # Секретов для ansible в Vault пока нет — берутся секреты GitHub
 
       # Переключаемся в devops репозиторий
       - uses: actions/checkout@v4
@@ -226,19 +223,19 @@ jobs:
       # Секреты из Vault по GitHub OIDC; если не вышло — берутся секреты GitHub
       - name: Import secrets from Vault
         uses: hashicorp/vault-action@v3
-        if: inputs.vault_service != ''
+        if: inputs.vault_role != ''
         continue-on-error: true
         with:
           url: ${{ env.VAULT_ADDR }}
           method: jwt
-          role: ci-${{ inputs.vault_service }}
+          role: ${{ inputs.vault_role }}
           jwtGithubAudience: https://github.com/${{ github.repository_owner }}
           secrets: |
-            secret/data/ci/shared/notify TG_BOT_TOKEN ;
-            secret/data/ci/shared/notify TG_CHAT_ID ;
-            secret/data/ci/shared/notify TG_TOPIC_ID ;
-            secret/data/ci/shared/notify GRAFANA_API_TOKEN ;
-            secret/data/ci/shared/notify GRAFANA_URL
+            secret/data/ci/${{ inputs.vault_project }}/deploy-notify TG_BOT_TOKEN ;
+            secret/data/ci/${{ inputs.vault_project }}/deploy-notify TG_CHAT_ID ;
+            secret/data/ci/${{ inputs.vault_project }}/deploy-notify TG_TOPIC_ID ;
+            secret/data/ci/${{ inputs.vault_project }}/deploy-notify GRAFANA_API_TOKEN ;
+            secret/data/ci/${{ inputs.vault_project }}/deploy-notify GRAFANA_URL
 
       - name: Notify
         run: |

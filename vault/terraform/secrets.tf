@@ -1,14 +1,16 @@
 # Секрет = единица доступа. На каждый — политика на чтение с именем пути через дефис:
-# ci/github/jedi-tasks/push-grpc → ci-github-jedi-tasks-push-grpc
+# ci/jedi-tasks/github-pat → ci-jedi-tasks-github-pat
+# Ключ внутри секрета называется как переменная в CI (PAT_TOKEN, KUBECONFIG, ...)
 # Значения кладутся руками: vault kv put secret/<путь> KEY=...
 locals {
   secrets = [
-    "ci/github/finfix/read-submodules", # TOKEN — чтение приватных сабмодулей finfix
-    "ci/github/jedi-tasks/push-grpc",   # TOKEN — пуш в go-server-grpc и swift-client-grpc
-    "ci/k8s/coin/coin-server-dev",      # KUBECONFIG — ns dev
-    "ci/k8s/coin/coin-server-prod",     # KUBECONFIG — ns prod
-    "ci/k8s/coin/helmfile-sops",        # SOPS_AGE — ключ k8s/secrets/*.yaml (убрать после переезда на ESO)
-    "ci/notify/deploy",                 # TG_BOT_TOKEN, TG_CHAT_ID, TG_TOPIC_ID, GRAFANA_TOKEN, GRAFANA_URL
+    "ci/coin/read-submodules",  # PAT_TOKEN — чтение приватных сабмодулей finfix
+    "ci/coin/coin-server-dev",  # KUBECONFIG — ns dev
+    "ci/coin/coin-server-prod", # KUBECONFIG — ns prod
+    "ci/coin/helmfile-sops",    # SOPS_AGE — ключ k8s/secrets/*.yaml (убрать после переезда на ESO)
+    "ci/coin/deploy-notify",    # TG_BOT_TOKEN, TG_CHAT_ID, TG_TOPIC_ID, GRAFANA_API_TOKEN, GRAFANA_URL
+
+    "ci/jedi-tasks/github-pat", # PAT_TOKEN — пуш в go-server-grpc и swift-client-grpc
   ]
 }
 

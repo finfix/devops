@@ -7,11 +7,26 @@
 ## Модель
 | Сущность | Что это | Нейминг |
 |---|---|---|
-| Секрет | единица доступа: один кред, ключи внутри выдаются только вместе | `ci/<тип>/<куда>/<кто>` |
+| Секрет | единица доступа: один кред, ключи внутри выдаются только вместе | `ci/<проект>/<имя>` |
 | Политика | чтение одного секрета | путь через дефис |
 | Роль | один кейс одного инструмента → набор секретов | `gh-<организация>-<репо>-<кейс>` |
 
-Ключи по типу секрета: `k8s` → `KUBECONFIG`, `github` → `TOKEN`, `ssh` → `SSH_KEY`.
+Ключ внутри секрета называется как переменная в CI: `PAT_TOKEN`, `KUBECONFIG`, `SOPS_AGE`, `TG_BOT_TOKEN`, …
+
+Эталон использования — `jedi-tasks/contracts` (`.github/workflows/build.yml`): в workflow явно указаны роль и пути:
+
+```yaml
+- uses: hashicorp/vault-action@v3
+  with:
+    url: https://vault.bonavii.com
+    method: jwt
+    role: gh-jedi-tasks-contracts-generate
+    jwtGithubAudience: https://github.com/jedi-tasks
+    secrets: |
+      secret/data/ci/jedi-tasks/github-pat PAT_TOKEN
+```
+
+Джобе нужно `permissions: id-token: write`.
 
 ## Добавить роль
 1. Секрет — строка в `terraform/secrets.tf`, значение — `vault kv put`.
