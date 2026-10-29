@@ -45,6 +45,19 @@ readinessProbe:
     timeoutSeconds: 2
     failureThreshold: 3
 
+# Общие для окружений переменные. Все env обязательные: сервер не стартует без любой из них
+envs:
+    LISTEN_HTTP: "0.0.0.0:8080"
+    LISTEN_SERVICE_HTTP: "0.0.0.0:8081"
+    LISTEN_GRPC: "0.0.0.0:8090"
+    LISTEN_MCP: "0.0.0.0:8092"
+    AUTH_REFRESH_TOKEN_TTL: "720h"
+    AUTH_ACCESS_TOKEN_TTL: "30m"
+    # Регистрация открывается вручную на время заведения пользователя
+    AUTH_SIGN_UP_ENABLED: "false"
+    LOG_LEVEL: info
+    LOG_FORMAT: json
+
 # БД tasks и пользователь tasks создаются джобой postgres-init из pgsql.users
 secretEnv:
     PGSQL_USER: "tasks"
