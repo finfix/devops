@@ -181,6 +181,9 @@ releases:
     version: 18.3.0
     inherit:
       - template: prod_dev
+    needs:
+      # Secret postgres-auth (пароль суперпользователя)
+      - "{{ .Environment.Name }}/vault-secrets"
 
   - name: postgres-init
     chart: incubator/raw
@@ -189,15 +192,17 @@ releases:
     createNamespace: true
     needs:
       - "postgres-{{ .Environment.Name }}/postgres"
+      - "{{ .Environment.Name }}/vault-secrets"
     values:
       - "config/postgres/init-secret.yaml.gotmpl"
 
   # Registry Credentials
+  # Выключен: Secret registry-credentials теперь создаёт VSO (релиз vault-secrets).
+  # apply удаляет старый Secret, VSO создаёт свой. Удаляется в PR «удаление SOPS»
   - name: registry-credentials
     chart: incubator/raw
     version: 0.2.5
-    # Секрет для pull образов должен лежать в namespace пода,
-    # поэтому namespace здесь — окружение, как у coin-server
+    installed: false
     inherit:
       - template: chart
 
@@ -207,8 +212,8 @@ releases:
     inherit:
       - template: chart
     needs:
+      - "{{ .Environment.Name }}/vault-secrets"
       - "postgres-{{ .Environment.Name }}/postgres-init"
-      - "{{ .Environment.Name }}/registry-credentials"
 
   # Tasks server (jedi-tasks)
   - name: tasks-server
@@ -216,8 +221,8 @@ releases:
     inherit:
       - template: chart
     needs:
+      - "{{ .Environment.Name }}/vault-secrets"
       - "postgres-{{ .Environment.Name }}/postgres-init"
-      - "{{ .Environment.Name }}/registry-credentials"
 
   # For RPI
   - name: homeassistant-proxy

@@ -41,17 +41,20 @@ readinessProbe:
     timeoutSeconds: 2
     failureThreshold: 3
 
-# БД tasks и пользователь tasks создаются джобой postgres-init из pgsql.users
-secretEnv:
+# БД tasks и пользователь tasks создаются джобой postgres-init (pgsql_users в helmfile)
+envs:
     PGSQL_USER: "tasks"
-    PGSQL_PASSWORD: "{{ .Values.pgsql.users.tasks.password }}"
     PGSQL_DATABASE: "tasks"
-    AUTH_TOKEN_SIGNING_KEY: "{{ .Values.tasks_server.auth.key }}"
-    SHA_SALT: "{{ .Values.tasks_server.auth.salt }}"
     LOG_LEVEL: info
     LOG_FORMAT: json
-    # Начальный пользователь: сервер создает его при запуске, если email еще не занят.
-    # Пустой email — не создавать. Значения — tasks_server.initial_user в secrets-<env>.yaml
-    AUTH_INITIAL_USER_NAME: "{{ dig "tasks_server" "initial_user" "name" "" .Values }}"
-    AUTH_INITIAL_USER_EMAIL: "{{ dig "tasks_server" "initial_user" "email" "" .Values }}"
-    AUTH_INITIAL_USER_PASSWORD: "{{ dig "tasks_server" "initial_user" "password" "" .Values }}"
+
+# Секреты — из Vault через VSO (релиз vault-secrets, vault/README.md):
+# tasks-server-vault — secret/jedi-tasks/tasks-server/<окружение>, ключи = имена переменных
+# (AUTH_TOKEN_SIGNING_KEY, SHA_SALT; начальный пользователь — AUTH_INITIAL_USER_NAME/EMAIL/PASSWORD:
+# сервер создаёт его при запуске, если email ещё не занят; нет ключей — не создаёт);
+# tasks-server-db — PGSQL_PASSWORD из secret/infra/postgres/<окружение>/tasks
+extraEnvFrom:
+    - secretRef:
+          name: tasks-server-vault
+    - secretRef:
+          name: tasks-server-db

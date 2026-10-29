@@ -2,10 +2,16 @@
 # Grafana — дашборды и визуализация
 # ============================================================
 grafana:
-  adminPassword: {{ .Values.grafana.adminPassword }}
+  # Логин и пароль администратора — Secret grafana-admin от VSO (Vault secret/infra/grafana/prod).
+  # Применяется только при создании БД Grafana; у существующей пароль меняется в самой Grafana
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
 
-  env:
-    GF_DATABASE_PASSWORD: {{ .Values.pgsql.users.grafana.password }}
+  # GF_DATABASE_PASSWORD — Secret grafana-db от VSO (Vault secret/infra/postgres/prod/grafana)
+  envFromSecrets:
+    - name: grafana-db
 
   # Дашборд по умолчанию на главной странице Grafana
   dashboardProviders:

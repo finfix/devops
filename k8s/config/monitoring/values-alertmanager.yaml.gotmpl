@@ -4,6 +4,12 @@
 alertmanager:
   enabled: true
 
+  # Secret alertmanager-telegram от VSO (Vault secret/infra/alertmanager/prod) монтируется
+  # в /etc/alertmanager/secrets/alertmanager-telegram/<ключ>
+  alertmanagerSpec:
+    secrets:
+      - alertmanager-telegram
+
   # Шаблоны сообщений, которые монтируются в /etc/alertmanager/config/*.tmpl
   # и затем используются в receivers через директиву message.
   templateFiles:
@@ -57,9 +63,10 @@ alertmanager:
     # chat_id — отдельный канал для алертов
     - name: 'default-receiver'
       telegram_configs:
-        - bot_token: {{ .Values.alertmanager.telegram_token }}
-          chat_id: {{ .Values.alertmanager.telegram_chat_id }}
-          message_thread_id: {{ .Values.alertmanager.telegram_topic_id }}
+        - bot_token_file: /etc/alertmanager/secrets/alertmanager-telegram/TG_BOT_TOKEN
+          chat_id_file: /etc/alertmanager/secrets/alertmanager-telegram/TG_CHAT_ID
+          # У message_thread_id нет варианта _file — читается из Vault при деплое (нужен vault login)
+          message_thread_id: {{ fetchSecretValue "ref+vault://secret/infra/alertmanager/prod#/TG_TOPIC_ID" }}
           api_url: 'https://api.telegram.org'
           parse_mode: 'HTML'
           message: '{{ "{{" }} template "telegram.text" .}}'
