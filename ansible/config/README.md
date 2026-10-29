@@ -4,5 +4,5 @@
 
 ## Установка пароля от Vault Ansible
 ```sh
-make create-ansible-password-file
+echo "<пароль>" > ansible/config/.vault_password
 ```
