@@ -5,23 +5,23 @@ locals {
     "gh-finfix-go-server-deploy-dev" = {
       repo    = "finfix/go-server"
       refs    = ["refs/heads/release/*", "refs/heads/hotfix/*"]
-      secrets = ["ci/coin/read-submodules", "ci/coin/coin-server-dev", "ci/coin/helmfile-sops", "ci/coin/deploy-notify"]
+      secrets = ["ci/coin/read-submodules", "ci/coin/coin-server-dev", "ci/coin/helmfile-sops", "ci/coin/deploy-notify", "ci/coin/wireguard-ci"]
     }
     "gh-finfix-go-server-deploy-prod" = {
       repo    = "finfix/go-server"
       refs    = ["refs/tags/v*"]
-      secrets = ["ci/coin/read-submodules", "ci/coin/coin-server-prod", "ci/coin/helmfile-sops", "ci/coin/deploy-notify"]
+      secrets = ["ci/coin/read-submodules", "ci/coin/coin-server-prod", "ci/coin/helmfile-sops", "ci/coin/deploy-notify", "ci/coin/wireguard-ci"]
     }
     # Сервер Tasks живёт в кластере coin: SOPS и уведомления — общие секреты coin
     "gh-jedi-tasks-server-deploy-dev" = {
       repo    = "jedi-tasks/server"
       refs    = ["refs/heads/release/*", "refs/heads/hotfix/*"]
-      secrets = ["ci/jedi-tasks/github-pat", "ci/jedi-tasks/tasks-server-dev-kubeconfig", "ci/coin/helmfile-sops", "ci/coin/deploy-notify"]
+      secrets = ["ci/jedi-tasks/github-pat", "ci/jedi-tasks/tasks-server-dev-kubeconfig", "ci/coin/helmfile-sops", "ci/coin/deploy-notify", "ci/coin/wireguard-ci"]
     }
     "gh-jedi-tasks-server-deploy-prod" = {
       repo    = "jedi-tasks/server"
       refs    = ["refs/tags/v*"]
-      secrets = ["ci/jedi-tasks/github-pat", "ci/jedi-tasks/tasks-server-prod-kubeconfig", "ci/coin/helmfile-sops", "ci/coin/deploy-notify"]
+      secrets = ["ci/jedi-tasks/github-pat", "ci/jedi-tasks/tasks-server-prod-kubeconfig", "ci/coin/helmfile-sops", "ci/coin/deploy-notify", "ci/coin/wireguard-ci"]
     }
     "gh-jedi-tasks-contracts-generate" = {
       repo    = "jedi-tasks/contracts"
