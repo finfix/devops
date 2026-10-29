@@ -11,10 +11,6 @@ help:
 edit-ansible-secrets:
 	@$(COMMON) $@
 
-# Секреты окружения k3s (SOPS)
-edit-k3s-secrets:
-	@$(COMMON) $@
-
 # Ansible-плейбук: группа → плейбук → хост
 run-ansible-playbook:
 	@$(COMMON) $@
@@ -23,7 +19,7 @@ run-ansible-playbook:
 do-k3s:
 	@$(COMMON) $@
 
-.PHONY: help edit-ansible-secrets edit-k3s-secrets run-ansible-playbook do-k3s
+.PHONY: help edit-ansible-secrets run-ansible-playbook do-k3s
 
 # Цели для CI (make_command в workflow сервисов)
 include ci.mk
