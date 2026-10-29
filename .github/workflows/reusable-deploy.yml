@@ -25,7 +25,7 @@ on:
         required: false
         type: string
         default: ''
-      # Роль Vault для этого кейса (vault/terraform/roles-github.tf), например gh-finfix-server-deploy-dev.
+      # Роль Vault для этого кейса (vault/terraform/roles-github.tf), например gh-finfix-go-server-deploy-dev.
       # Пусто — секреты берутся только из GitHub
       vault_role:
         required: false

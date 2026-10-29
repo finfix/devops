@@ -2,13 +2,13 @@
 # Имя: gh-<организация>-<репо>-<кейс>; в workflow — vault-action с role: <имя>
 locals {
   github_roles = {
-    "gh-finfix-server-deploy-dev" = {
-      repo    = "finfix/server"
+    "gh-finfix-go-server-deploy-dev" = {
+      repo    = "finfix/go-server"
       refs    = ["refs/heads/release/*", "refs/heads/hotfix/*"]
       secrets = ["ci/coin/read-submodules", "ci/coin/coin-server-dev", "ci/coin/helmfile-sops", "ci/coin/deploy-notify"]
     }
-    "gh-finfix-server-deploy-prod" = {
-      repo    = "finfix/server"
+    "gh-finfix-go-server-deploy-prod" = {
+      repo    = "finfix/go-server"
       refs    = ["refs/tags/v*"]
       secrets = ["ci/coin/read-submodules", "ci/coin/coin-server-prod", "ci/coin/helmfile-sops", "ci/coin/deploy-notify"]
     }
