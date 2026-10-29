@@ -1,10 +1,25 @@
-export SOPS_AGE_KEY_FILE=$(CURDIR)/k8s/secrets/key.txt
-APP_VERSION ?= latest
-# Таймаут на релиз в секундах (helmfile apply --timeout), по умолчанию 3 минуты
-RELEASE_TIMEOUT ?= 180
+# Задачи проекта. Реализация — в common/Makefile и common/scripts/make/.
+# Без параметров каждая задача показывает меню; любой пункт можно задать переменной (см. make help).
 
-deploy-coin-server:
-	APP_VERSION=$(APP_VERSION) helmfile -f k8s/helmfile.yaml -e prod apply -l name=coin-server --timeout $(RELEASE_TIMEOUT) --diff-args="--suppress-secrets"
+COMMON := $(MAKE) --no-print-directory -f common/Makefile
 
-deploy-coin-server-dev:
-	APP_VERSION=$(APP_VERSION) helmfile -f k8s/helmfile.yaml -e dev apply -l name=coin-server --timeout $(RELEASE_TIMEOUT) --diff-args="--suppress-secrets"
+# Секреты ansible-хоста (vault)
+edit-ansible-secrets:
+	@$(COMMON) $@
+
+# Секреты окружения k3s (SOPS)
+edit-k3s-secrets:
+	@$(COMMON) $@
+
+# Ansible-плейбук: группа → плейбук → хост
+run-ansible-playbook:
+	@$(COMMON) $@
+
+# Кластер k3s: действие → окружение → релиз
+do-k3s:
+	@$(COMMON) $@
+
+.PHONY: help edit-ansible-secrets edit-k3s-secrets run-ansible-playbook do-k3s add-vpn-server remove-vpn-server
+
+# Цели для CI (make_command в workflow сервисов)
+include ci.mk

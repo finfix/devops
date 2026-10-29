@@ -5,7 +5,7 @@ show-spec:
 	helm show values bitnami/postgresql
 
 template-prod:
-	helmfile -e prod template # -l name=postgres
+	helmfile -e prod template -l name=registry-credentials
 
 template-dev:
 	helmfile -e dev template # -l name=go-server
@@ -18,10 +18,10 @@ write-values-dev:
 
 # Деплой
 deploy-prod:
-	helmfile -e prod apply # -l name=postgres
+	helmfile -e prod apply -l name=registry-credentials
 
 deploy-dev:
-	helmfile -e dev apply -l env!=prod
+	helmfile -e dev apply -l env!=prod,name=registry-credentials
 
 sync-prod:
 	helmfile -e prod sync
