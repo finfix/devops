@@ -1,0 +1,50 @@
+image:
+    tag: {{ env "APP_VERSION" | default "latest" }}
+    pullPolicy: Always
+
+replicaCount: 1
+
+imagePullSecrets:
+    - name: registry-credentials
+
+service:
+    enabled: true
+    ports:
+        - name: grpc
+          port: 8090
+          targetPort: 8090
+
+deployment:
+    podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8081"
+
+# Хэлсчеки: fiber-healthcheck отдаёт /livez и /readyz на служебном HTTP-порту
+livenessProbe:
+    enabled: true
+    httpGet:
+        path: /livez
+        port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+
+readinessProbe:
+    enabled: true
+    httpGet:
+        path: /readyz
+        port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+
+# БД tasks и пользователь tasks создаются джобой postgres-init из pgsql.users
+secretEnv:
+    PGSQL_USER: "tasks"
+    PGSQL_PASSWORD: "{{ .Values.pgsql.users.tasks.password }}"
+    PGSQL_DATABASE: "tasks"
+    AUTH_TOKEN_SIGNING_KEY: "{{ .Values.tasks_server.auth.key }}"
+    SHA_SALT: "{{ .Values.tasks_server.auth.salt }}"

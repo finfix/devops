@@ -185,6 +185,15 @@ releases:
       - "postgres-{{ .Environment.Name }}/postgres-init"
       - "{{ .Environment.Name }}/registry-credentials"
 
+  # Tasks server (jedi-tasks)
+  - name: tasks-server
+    chart: ../common/k8s/charts/app
+    inherit:
+      - template: chart
+    needs:
+      - "postgres-{{ .Environment.Name }}/postgres-init"
+      - "{{ .Environment.Name }}/registry-credentials"
+
   # For RPI
   - name: homeassistant-proxy
     chart: incubator/raw
