@@ -79,10 +79,10 @@ SA `dev/coin-server-vault`, пути `coin/coin-server/dev` и `infra/postgres/d
 Джобе нужно `permissions: id-token: write`.
 
 ## Перенос из SOPS
-`vault/migrate-from-sops.sh` расшифровывает `k8s/secrets/secrets-<env>.yaml`, кладёт значения по схеме выше
-и перекладывает секреты CI со старых путей `ci/<проект>/<имя>` на новые. Печатает только пути и имена ключей.
-`--dry-run` — план без расшифровки и чтения Vault; `--force` — перезаписать существующие пути;
-`--cluster-users` — записать `k8s/config/cluster-users/users.yaml` (открытым текстом).
+Выполнен скриптом `vault/migrate-from-sops.sh` (удалён вместе с SOPS, есть в истории git).
+`k8s/secrets/key.txt` больше не используется (остался в `.gitignore`, чтобы случайно не попасть в git).
+После переезда всех вызывающих workflow удалить старый секрет: `vault kv metadata delete -mount=secret ci/coin/helmfile-sops`
+(и остальные `ci/<проект>/*`).
 
 ## Unseal
 Ручной: после рестарта пода Vault запечатан, пока не ввести ключи

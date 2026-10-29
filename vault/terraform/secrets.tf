@@ -17,21 +17,7 @@ locals {
     "infra/ci/wireguard",     # WG_CONFIG — конфиг пира github-ci (10.10.10.6) для доступа к kube-apiserver
   ]
 
-  # Старые пути ci/<проект>/<имя>. Живут, пока вызывающие workflow (в том числе prod-workflow на main
-  # и теги, с которых может пойти хотфикс) не переедут на новые пути. Удаляются в PR «удаление SOPS»
-  legacy_ci_secrets = [
-    "ci/coin/github-pat",
-    "ci/coin/coin-server-dev-kubeconfig",
-    "ci/coin/coin-server-prod-kubeconfig",
-    "ci/coin/helmfile-sops", # SOPS_AGE — ключ k8s/secrets/*.yaml
-    "ci/coin/deploy-notify",
-    "ci/coin/wireguard-ci",
-    "ci/jedi-tasks/github-pat",
-    "ci/jedi-tasks/tasks-server-dev-kubeconfig",
-    "ci/jedi-tasks/tasks-server-prod-kubeconfig",
-  ]
-
-  secrets = concat(local.ci_secrets, local.legacy_ci_secrets)
+  secrets = local.ci_secrets
 }
 
 resource "vault_policy" "secret_read" {
