@@ -1,0 +1,109 @@
+# Секреты из Vault через Vault Secrets Operator (VSO). Схема путей и ролей — vault/README.md.
+# На каждого потребителя: ServiceAccount <имя>-vault, VaultAuth <имя> (роль k8s-<проект>-<сервис>-<окружение>,
+# vault/terraform/k8s.tf) и VaultStaticSecret на каждый Secret. Значения в git не попадают
+{{- $env := .Environment.Name }}
+{{- $pgNs := printf "postgres-%s" $env }}
+
+{{- /* Потребители: name — имя SA/VaultAuth, role — роль Vault, namespace — где лежат Secret */}}
+{{- $auths := list
+  (dict "name" "coin-server" "role" (printf "k8s-coin-coin-server-%s" $env) "namespace" $env)
+  (dict "name" "tasks-server" "role" (printf "k8s-jedi-tasks-tasks-server-%s" $env) "namespace" $env)
+  (dict "name" "postgres" "role" (printf "k8s-infra-postgres-%s" $env) "namespace" $pgNs)
+}}
+{{- if eq $env "prod" }}
+{{- $auths = append $auths (dict "name" "grafana" "role" "k8s-infra-grafana-prod" "namespace" "monitoring") }}
+{{- $auths = append $auths (dict "name" "alertmanager" "role" "k8s-infra-alertmanager-prod" "namespace" "monitoring") }}
+{{- end }}
+
+{{- /* Секреты: auth — потребитель, path — путь в secret/, dest — имя Secret,
+       templates — ключи Secret из шаблонов VSO (тогда исходные ключи не копируются),
+       restart — Deployment/StatefulSet, который перезапустить при изменении в Vault */}}
+{{- $secrets := list
+  (dict "auth" "coin-server" "path" (printf "coin/coin-server/%s" $env) "dest" "coin-server-vault"
+        "restart" (list (dict "kind" "Deployment" "name" "coin-server")))
+  (dict "auth" "coin-server" "path" (printf "infra/postgres/%s/coin" $env) "dest" "coin-server-db"
+        "templates" (dict "PGSQL_PASSWORD" `{{ get .Secrets "password" }}`)
+        "restart" (list (dict "kind" "Deployment" "name" "coin-server")))
+  (dict "auth" "tasks-server" "path" (printf "jedi-tasks/tasks-server/%s" $env) "dest" "tasks-server-vault"
+        "restart" (list (dict "kind" "Deployment" "name" "tasks-server")))
+  (dict "auth" "tasks-server" "path" (printf "infra/postgres/%s/tasks" $env) "dest" "tasks-server-db"
+        "templates" (dict "PGSQL_PASSWORD" `{{ get .Secrets "password" }}`)
+        "restart" (list (dict "kind" "Deployment" "name" "tasks-server")))
+  (dict "auth" "postgres" "path" (printf "infra/postgres/%s/postgres" $env) "dest" "postgres-auth"
+        "templates" (dict "postgres-password" `{{ get .Secrets "password" }}`))
+}}
+{{- /* Пароли пользователей БД для postgres-init: Secret postgres-user-<пользователь>, ключ password */}}
+{{- range $user := .Values.pgsql_users }}
+{{- $secrets = append $secrets (dict "auth" "postgres" "path" (printf "infra/postgres/%s/%s" $env $user) "dest" (printf "postgres-user-%s" $user)) }}
+{{- end }}
+{{- if eq $env "prod" }}
+{{- $secrets = append $secrets (dict "auth" "grafana" "path" "infra/grafana/prod" "dest" "grafana-admin"
+        "templates" (dict "admin-user" "admin" "admin-password" `{{ get .Secrets "ADMIN_PASSWORD" }}`)
+        "restart" (list (dict "kind" "Deployment" "name" "monitoring-grafana"))) }}
+{{- $secrets = append $secrets (dict "auth" "grafana" "path" "infra/postgres/prod/grafana" "dest" "grafana-db"
+        "templates" (dict "GF_DATABASE_PASSWORD" `{{ get .Secrets "password" }}`)
+        "restart" (list (dict "kind" "Deployment" "name" "monitoring-grafana"))) }}
+{{- /* Alertmanager читает токен и chat id из файлов /etc/alertmanager/secrets/alertmanager-telegram/ */}}
+{{- /* Без rolloutRestartTargets: StatefulSet ведёт prometheus-operator, а файлы секрета kubelet обновляет сам */}}
+{{- $secrets = append $secrets (dict "auth" "alertmanager" "path" "infra/alertmanager/prod" "dest" "alertmanager-telegram") }}
+{{- end }}
+
+{{- $nsByAuth := dict }}
+{{- range $a := $auths }}{{ $_ := set $nsByAuth $a.name $a.namespace }}{{ end }}
+
+resources:
+{{- range $a := $auths }}
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: {{ $a.name }}-vault
+      namespace: {{ $a.namespace }}
+
+  - apiVersion: secrets.hashicorp.com/v1beta1
+    kind: VaultAuth
+    metadata:
+      name: {{ $a.name }}
+      namespace: {{ $a.namespace }}
+    spec:
+      method: kubernetes
+      mount: kubernetes
+      kubernetes:
+        role: {{ $a.role }}
+        serviceAccount: {{ $a.name }}-vault
+        audiences: ["vault"]
+{{- end }}
+
+{{- range $s := $secrets }}
+  - apiVersion: secrets.hashicorp.com/v1beta1
+    kind: VaultStaticSecret
+    metadata:
+      name: {{ $s.dest }}
+      namespace: {{ index $nsByAuth $s.auth }}
+    spec:
+      vaultAuthRef: {{ $s.auth }}
+      mount: secret
+      type: kv-v2
+      path: {{ $s.path }}
+      refreshAfter: 60s
+      destination:
+        name: {{ $s.dest }}
+        create: true
+        {{- with (dig "type" "" $s) }}
+        type: {{ . }}
+        {{- end }}
+        {{- with (dig "templates" (dict) $s) }}
+        transformation:
+          excludeRaw: true
+          # Исходные ключи не копируем — в Secret только ключи из шаблонов
+          excludes: [".*"]
+          templates:
+            {{- range $key, $text := . }}
+            {{ $key }}:
+              text: {{ $text | quote }}
+            {{- end }}
+        {{- end }}
+      {{- with (dig "restart" (list) $s) }}
+      rolloutRestartTargets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

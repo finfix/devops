@@ -1,0 +1,6 @@
+# Vault Secrets Operator: кластер сам читает секреты из Vault и создаёт из них обычные Secret.
+# Подключение к Vault по умолчанию для всех VaultAuth — внутренний адрес сервиса
+defaultVaultConnection:
+  enabled: true
+  address: http://vault.vault.svc.cluster.local:8200
+  skipTLSVerify: false

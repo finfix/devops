@@ -18,3 +18,19 @@ additionalPrometheusRulesMap:
         annotations:
           summary: "Node {{ "{{" }} $labels.instance }} is down"
           description: "Node exporter on {{ "{{" }} $labels.instance }} has been unreachable for more than 2 minutes"
+
+  vault:
+    groups:
+    - name: vault
+      rules:
+      # Vault запечатан (после рестарта пода) или недоступен: VSO не обновляет секреты, CI не получает свои.
+      # Unseal ручной: kubectl -n vault exec -it vault-0 -- vault operator unseal (vault/README.md).
+      # probe_http_status_code: 503 — запечатан, 501 — не инициализирован, 0 — не отвечает
+      - alert: VaultSealed
+        expr: probe_success{job="blackbox-vault"} == 0
+        for: 2m
+        labels:
+          severity: Critical
+        annotations:
+          summary: "Vault запечатан или недоступен"
+          description: "Vault /v1/sys/health не отвечает 200/429 больше 2 минут (код {{ "{{" }} with query \"probe_http_status_code{job='blackbox-vault'}\" }}{{ "{{" }} . | first | value }}{{ "{{" }} end }}). Нужен ручной unseal"

@@ -67,3 +67,22 @@ prometheus:
       static_configs:
       - targets:
         - https://grafana.bonavii.com
+
+      # Vault — запечатан ли (unseal ручной). /v1/sys/health: 200 — активен, 429 — standby,
+      # 503 — запечатан, 501 — не инициализирован. Модуль vault_unsealed — values-blackbox.yaml.gotmpl,
+      # алерт VaultSealed — values-alerts.yaml.gotmpl
+    - job_name: 'blackbox-vault'
+      metrics_path: /probe
+      params:
+        module:
+        - vault_unsealed
+      relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - replacement: prometheus-blackbox-prometheus-blackbox-exporter.monitoring.svc.cluster.local:9115
+        target_label: __address__
+      static_configs:
+      - targets:
+        - http://vault.vault.svc.cluster.local:8200/v1/sys/health
