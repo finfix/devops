@@ -20,7 +20,6 @@ ingresses:
     - name: mcp
       enabled: true
       className: nginx
-      servicePort: 8092
       annotations:
           cert-manager.io/cluster-issuer: letsencrypt
       hosts:
@@ -28,6 +27,8 @@ ingresses:
             paths:
                 - path: /
                   pathType: Prefix
+                  # Порт задается у пути: чарт читает servicePort из path, а не из ingress
+                  servicePort: 8092
       tls:
           - hosts:
                 - mcp.tasks.dev.bonavii.com
