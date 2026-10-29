@@ -4,13 +4,11 @@ environments:
       # Пользователи БД (и одноимённые БД), которых создаёт postgres-init.
       # Пароли — Vault secret/infra/postgres/<окружение>/<пользователь>, ключ password
       - pgsql_users: [coin, tasks]
-    secrets:
-      - "secrets/secrets-dev.yaml"
   prod:
     values:
       - pgsql_users: [coin, tasks, grafana]
-    secrets:
-      - "secrets/secrets-prod.yaml"
+      # Пользователи кластера (не секрет) — релиз cluster-users
+      - config/cluster-users/users.yaml
 
 ---
 
@@ -197,15 +195,6 @@ releases:
       - "config/postgres/init-secret.yaml.gotmpl"
 
   # Registry Credentials
-  # Выключен: Secret registry-credentials теперь создаёт VSO (релиз vault-secrets).
-  # apply удаляет старый Secret, VSO создаёт свой. Удаляется в PR «удаление SOPS»
-  - name: registry-credentials
-    chart: incubator/raw
-    version: 0.2.5
-    installed: false
-    inherit:
-      - template: chart
-
   # Server
   - name: coin-server
     chart: ../common/k8s/charts/app
