@@ -4,16 +4,16 @@
 # Значения кладутся руками: vault kv put secret/<путь> KEY=...
 locals {
   secrets = [
-    "ci/coin/github-pat",                  # PAT_TOKEN — чтение приватных сабмодулей finfix
-    "ci/coin/coin-server-dev-kubeconfig",  # KUBECONFIG — ns dev
-    "ci/coin/coin-server-prod-kubeconfig", # KUBECONFIG — ns prod
-    "ci/coin/helmfile-sops",               # SOPS_AGE — ключ k8s/secrets/*.yaml (убрать после переезда на ESO)
-    "ci/coin/deploy-notify",               # TG_BOT_TOKEN, TG_CHAT_ID, TG_TOPIC_ID, GRAFANA_API_TOKEN, GRAFANA_URL
-    "ci/coin/wireguard-ci",                # WG_CONFIG — конфиг пира github-ci (10.10.10.6) для доступа к kube-apiserver
+    "coin/ci/github-pat",      # PAT_TOKEN — чтение приватных сабмодулей finfix
+    "coin/ci/kubeconfig-dev",  # KUBECONFIG — ns dev
+    "coin/ci/kubeconfig-prod", # KUBECONFIG — ns prod
+    "coin/ci/helmfile-sops",   # SOPS_AGE — ключ k8s/secrets/*.yaml (убрать после переезда на ESO)
+    "coin/ci/deploy-notify",   # TG_BOT_TOKEN, TG_CHAT_ID, TG_TOPIC_ID, GRAFANA_API_TOKEN, GRAFANA_URL
+    "coin/ci/wireguard",       # WG_CONFIG — конфиг пира github-ci (10.10.10.6) для доступа к kube-apiserver
 
-    "ci/jedi-tasks/github-pat",                   # PAT_TOKEN — пуш в go-server-grpc и swift-client-grpc, сборка и деплой сервера Tasks
-    "ci/jedi-tasks/tasks-server-dev-kubeconfig",  # KUBECONFIG — ns dev кластера coin
-    "ci/jedi-tasks/tasks-server-prod-kubeconfig", # KUBECONFIG — ns prod кластера coin
+    "jedi-tasks/ci/github-pat",      # PAT_TOKEN — пуш в go-server-grpc и swift-client-grpc, сборка и деплой сервера Tasks
+    "jedi-tasks/ci/kubeconfig-dev",  # KUBECONFIG — ns dev кластера coin
+    "jedi-tasks/ci/kubeconfig-prod", # KUBECONFIG — ns prod кластера coin
   ]
 }
 

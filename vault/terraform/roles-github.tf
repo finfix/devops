@@ -5,28 +5,28 @@ locals {
     "gh-finfix-go-server-deploy-dev" = {
       repo    = "finfix/go-server"
       refs    = ["refs/heads/release/*", "refs/heads/hotfix/*"]
-      secrets = ["ci/coin/github-pat", "ci/coin/coin-server-dev-kubeconfig", "ci/coin/helmfile-sops", "ci/coin/deploy-notify", "ci/coin/wireguard-ci"]
+      secrets = ["coin/ci/github-pat", "coin/ci/kubeconfig-dev", "coin/ci/helmfile-sops", "coin/ci/deploy-notify", "coin/ci/wireguard"]
     }
     "gh-finfix-go-server-deploy-prod" = {
       repo    = "finfix/go-server"
       refs    = ["refs/tags/v*"]
-      secrets = ["ci/coin/github-pat", "ci/coin/coin-server-prod-kubeconfig", "ci/coin/helmfile-sops", "ci/coin/deploy-notify", "ci/coin/wireguard-ci"]
+      secrets = ["coin/ci/github-pat", "coin/ci/kubeconfig-prod", "coin/ci/helmfile-sops", "coin/ci/deploy-notify", "coin/ci/wireguard"]
     }
     # Сервер Tasks живёт в кластере coin: SOPS и уведомления — общие секреты coin
     "gh-jedi-tasks-server-deploy-dev" = {
       repo    = "jedi-tasks/server"
       refs    = ["refs/heads/release/*", "refs/heads/hotfix/*"]
-      secrets = ["ci/jedi-tasks/github-pat", "ci/jedi-tasks/tasks-server-dev-kubeconfig", "ci/coin/helmfile-sops", "ci/coin/deploy-notify", "ci/coin/wireguard-ci"]
+      secrets = ["jedi-tasks/ci/github-pat", "jedi-tasks/ci/kubeconfig-dev", "coin/ci/helmfile-sops", "coin/ci/deploy-notify", "coin/ci/wireguard"]
     }
     "gh-jedi-tasks-server-deploy-prod" = {
       repo    = "jedi-tasks/server"
       refs    = ["refs/tags/v*"]
-      secrets = ["ci/jedi-tasks/github-pat", "ci/jedi-tasks/tasks-server-prod-kubeconfig", "ci/coin/helmfile-sops", "ci/coin/deploy-notify", "ci/coin/wireguard-ci"]
+      secrets = ["jedi-tasks/ci/github-pat", "jedi-tasks/ci/kubeconfig-prod", "coin/ci/helmfile-sops", "coin/ci/deploy-notify", "coin/ci/wireguard"]
     }
     "gh-jedi-tasks-contracts-generate" = {
       repo    = "jedi-tasks/contracts"
       refs    = ["refs/tags/v*"]
-      secrets = ["ci/jedi-tasks/github-pat"]
+      secrets = ["jedi-tasks/ci/github-pat"]
     }
   }
 }
