@@ -14,6 +14,12 @@ locals {
     "jedi-tasks/ci/github-pat",      # PAT_TOKEN — пуш в go-server-grpc и swift-client-grpc, сборка и деплой сервера Tasks
     "jedi-tasks/ci/kubeconfig-dev",  # KUBECONFIG — ns dev кластера coin
     "jedi-tasks/ci/kubeconfig-prod", # KUBECONFIG — ns prod кластера coin
+
+    "simple-vpn/ci/github-pat",
+    "simple-vpn/ci/kubeconfig-dev",
+    "simple-vpn/ci/kubeconfig-prod",
+    "simple-vpn/ci/helmfile-sops",
+    "simple-vpn/ci/deploy-notify",
   ]
 }
 
