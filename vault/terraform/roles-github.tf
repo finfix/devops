@@ -30,12 +30,12 @@ locals {
     }
     # Сервер Tasks живёт в кластере coin: SOPS и уведомления — общие секреты coin
     "gh-simple-vpn-server-deploy-dev" = {
-      repo    = "simple-vpn/server"
+      repo    = "simple-vpn/go-server"
       refs    = ["refs/heads/release/*", "refs/heads/hotfix/*"]
       secrets = ["simple-vpn/ci/github-pat", "simple-vpn/ci/kubeconfig-dev", "simple-vpn/ci/helmfile-sops", "simple-vpn/ci/deploy-notify"]
     }
     "gh-simple-vpn-server-deploy-prod" = {
-      repo    = "simple-vpn/server"
+      repo    = "simple-vpn/go-server"
       refs    = ["refs/tags/v*"]
       secrets = ["simple-vpn/ci/github-pat", "simple-vpn/ci/kubeconfig-prod", "simple-vpn/ci/helmfile-sops", "simple-vpn/ci/deploy-notify"]
     }
