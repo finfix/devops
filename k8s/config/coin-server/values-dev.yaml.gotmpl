@@ -19,9 +19,10 @@ ingresses:
 
 envs:
     PGSQL_HOST: "postgres-postgresql.postgres-dev.svc.cluster.local:5432"
-    OTLP_IS_ENABLED: "false"
-    OTLP_HTTP_ENDPOINT: ""
-    OTLP_INSECURE: ""
+    # Трейсы по OTLP HTTP в Alloy кластера → Tempo
+    OTLP_IS_ENABLED: "true"
+    OTLP_HTTP_ENDPOINT: "{{ .Values.endpoints.alloy.otlpHttp }}"
+    OTLP_INSECURE: "true"
     SERVICE_NAME: "coin"
     ENVIRONMENT: "dev"
     TG_BOT_ENABLED: "false"

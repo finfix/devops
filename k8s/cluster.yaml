@@ -1,0 +1,12 @@
+# Параметры кластера для общей платформы (common/k8s/platform.yaml) → .Values.cluster.*
+cluster:
+  # Имя кластера для меток в логах, метриках и алертах
+  clusterName: coin
+  # Базовый домен: grafana.<domain>
+  domain: bonavii.com
+  acmeEmail: bonavii@icloud.com
+  # Трейсы (OTLP → Tempo, метрики из трейсов) и профили (pprof → Pyroscope).
+  # Включают экспорт в Alloy и datasources в Grafana; релизы tempo/pyroscope — в helmfile
+  features:
+    tracing: true
+    profiling: true

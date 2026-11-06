@@ -23,6 +23,9 @@ deployment:
         prometheus.io/scrape: "true"
         prometheus.io/path: /metrics
         prometheus.io/port: "8081"
+        # Профили CPU, памяти и горутин с /debug/pprof служебного порта — Alloy → Pyroscope
+        profiles.grafana.com/cpu.scrape: "true"
+        profiles.grafana.com/cpu.port: "8081"
 
 # Хэлсчеки: fiber-healthcheck отдаёт /livez и /readyz на служебном HTTP-порту
 livenessProbe:

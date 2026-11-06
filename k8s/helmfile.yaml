@@ -1,210 +1,147 @@
+# Что развёрнуто в кластере coin. Шаблоны и базовая настройка — common/k8s/platform.yaml,
+# настройка подключается по имени релиза (см. там). Без version — последняя версия чарта.
+bases:
+  - ../common/k8s/platform.yaml
+
+---
+
 environments:
   dev:
+    values:
+      # Адреса сервисов наблюдаемости (переопределяются в cluster.yaml)
+      - ../common/k8s/platform/endpoints.yaml
+      - cluster.yaml
     secrets:
       - "secrets/secrets-dev.yaml"
   prod:
+    values:
+      # Адреса сервисов наблюдаемости (переопределяются в cluster.yaml)
+      - ../common/k8s/platform/endpoints.yaml
+      - cluster.yaml
     secrets:
       - "secrets/secrets-prod.yaml"
 
 ---
 
-repositories:
-  - name: ingress-nginx
-    url: https://kubernetes.github.io/ingress-nginx
-  - name: jetstack
-    url: https://charts.jetstack.io
-  - name: incubator
-    url: https://charts.helm.sh/incubator
-  - name: prometheus-community
-    url: https://prometheus-community.github.io/helm-charts
-  - name: grafana
-    url: https://grafana.github.io/helm-charts
-  - name: hashicorp
-    url: https://helm.releases.hashicorp.com
-
 helmDefaults:
   kubeContext: coin
-  # При падении деплоя автоматически откатывает к предыдущей версии —
-  # релиз не застрянет в состоянии failed
-  atomic: true
-
-templates:
-
-  # Сервисы с окружениями (prod/dev) — namespace включает имя окружения,
-  # подгружается общий values и env-специфичный (values-prod.yaml.gotmpl и т.д.)
-  prod_dev:
-    namespace: "{{ .Release.Name }}-{{ .Environment.Name }}"
-    createNamespace: true
-    missingFileHandler: Warn
-    values:
-      - "config/{{ .Release.Name }}/values.yaml.gotmpl"
-      - "config/{{ .Release.Name }}/values-{{ .Environment.Name }}.yaml.gotmpl"
-
-  # Сервисы в одном экземпляре (мониторинг, ingress, cert-manager и др.) —
-  # namespace фиксированный, без суффикса окружения, env-специфичный файл не нужен
-  singleton:
-    namespace: "{{ .Release.Name }}"
-    createNamespace: true
-    missingFileHandler: Warn
-    values:
-      - "config/{{ .Release.Name }}/values.yaml.gotmpl"
-    labels:
-      env: prod
-
-  # Локальные чарты (go-server, envoy, vue-client и др.) —
-  # namespace включает окружение, дополнительно подгружается values.local.yaml из репозитория чарта
-  chart:
-    namespace: "{{ .Environment.Name }}"
-    createNamespace: true
-    missingFileHandler: Warn
-    values:
-      - "config/{{ .Release.Name }}/values.yaml.gotmpl"
-      - "config/{{ .Release.Name }}/values-{{ .Environment.Name }}.yaml.gotmpl"
 
 releases:
-  # Cluster Users
+
+  # ---------- Платформа ----------
+
   - name: cluster-users
     chart: incubator/raw
-    version: 0.2.5
     namespace: default
-    inherit:
-      - template: singleton
+    inherit: [{template: platform}]
 
-  # Nginx Ingress
+  # Отличие coin — ssl-passthrough (config/ingress-nginx)
   - name: ingress-nginx
     chart: ingress-nginx/ingress-nginx
-    inherit:
-      - template: singleton
+    inherit: [{template: platform}]
 
-  # Cert-manager
   - name: cert-manager
     chart: jetstack/cert-manager
-    inherit:
-      - template: singleton
+    inherit: [{template: platform}]
 
   - name: letsencrypt-issuer
     chart: incubator/raw
     namespace: cert-manager
-    version: 0.2.5
-    needs: [cert-manager]
-    inherit:
-      - template: singleton
+    disableValidationOnInstall: true
+    needs: [cert-manager/cert-manager]
+    inherit: [{template: platform}]
 
-  # Loki
+  # Registry Credentials — секрет для pull образов в namespace окружения
+  - name: registry-credentials
+    chart: incubator/raw
+    namespace: "{{ .Environment.Name }}"
+    inherit: [{template: prod_dev}]
+
   - name: loki
     chart: grafana/loki
-    inherit:
-      - template: singleton
-    values:
-      - config/loki/values.yaml.gotmpl
+    inherit: [{template: platform}]
 
-  # Promtail
   - name: promtail
     chart: grafana/promtail
-    inherit:
-      - template: singleton
-    needs:
-      - loki/loki
-    values:
-      - config/promtail/values.yaml.gotmpl
+    needs: [loki/loki]
+    inherit: [{template: platform}]
 
-  # Monitoring
+  # Сбор логов (пока параллельно с Promtail, метка collector="alloy"), OTLP и pprof
+  - name: alloy
+    chart: grafana/alloy
+    needs: [loki/loki]
+    inherit: [{template: platform}]
+
+  # Трейсы (features.tracing в cluster.yaml)
+  - name: tempo
+    chart: grafana-community/tempo
+    inherit: [{template: platform}]
+
+  # Профили (features.profiling в cluster.yaml)
+  - name: pyroscope
+    chart: grafana/pyroscope
+    inherit: [{template: platform}]
+
+  # Prometheus, Alertmanager, Grafana. Grafana хранит состояние в postgres-<env>,
+  # БД и пользователя создаёт postgres-init — до него Grafana не стартует
   - name: monitoring
     chart: prometheus-community/kube-prometheus-stack
     disableValidationOnInstall: true
-    inherit:
-      - template: singleton
-    # Grafana хранит своё состояние в postgres-prod, БД и пользователь
-    # создаются джобой postgres-init
-    values:
-      - config/monitoring/values-alertmanager.yaml.gotmpl
-      - config/monitoring/values-grafana.yaml.gotmpl
-      - config/monitoring/values-prometheus.yaml.gotmpl
-      - config/monitoring/values-alerts.yaml.gotmpl
+    needs: ["postgres-{{ .Environment.Name }}/postgres-init"]
+    inherit: [{template: platform}]
 
   - name: prometheus-blackbox
     chart: prometheus-community/prometheus-blackbox-exporter
     namespace: monitoring
-    labels:
-      env: prod
-    needs:
-      - monitoring/monitoring
-    values:
-      - config/monitoring/values-blackbox.yaml.gotmpl
+    needs: [monitoring/monitoring]
+    inherit: [{template: platform}]
 
   - name: grafana-dashboards
     chart: incubator/raw
     namespace: monitoring
-    version: 0.2.5
-    labels:
-      env: prod
-    needs:
-      - monitoring/monitoring
-    values:
-      - config/monitoring/dashboards/dashboards-values.yaml.gotmpl
+    needs: [monitoring/monitoring]
+    inherit: [{template: platform}]
 
-  # Postgresql
+  # Мажорные версии Postgres требуют миграции данных — версия закреплена
   - name: postgres
     chart: bitnami/postgresql
     version: 18.3.0
-    inherit:
-      - template: prod_dev
+    inherit: [{template: prod_dev}]
 
   - name: postgres-init
     chart: incubator/raw
-    version: 0.2.5
     namespace: "postgres-{{ .Environment.Name }}"
-    createNamespace: true
-    needs:
-      - "postgres-{{ .Environment.Name }}/postgres"
-    values:
-      - "config/postgres/init-secret.yaml.gotmpl"
+    needs: ["postgres-{{ .Environment.Name }}/postgres"]
+    inherit: [{template: prod_dev}]
 
-  # Registry Credentials
-  - name: registry-credentials
-    chart: incubator/raw
-    version: 0.2.5
-    # Секрет для pull образов должен лежать в namespace пода,
-    # поэтому namespace здесь — окружение, как у coin-server
-    inherit:
-      - template: chart
+  # ---------- Сервисы ----------
 
-  # Server
   - name: coin-server
     chart: ../common/k8s/charts/app
-    inherit:
-      - template: chart
     needs:
       - "postgres-{{ .Environment.Name }}/postgres-init"
       - "{{ .Environment.Name }}/registry-credentials"
+    inherit: [{template: chart}]
 
   # Tasks server (jedi-tasks)
   - name: tasks-server
     chart: ../common/k8s/charts/app
-    inherit:
-      - template: chart
     needs:
       - "postgres-{{ .Environment.Name }}/postgres-init"
       - "{{ .Environment.Name }}/registry-credentials"
+    inherit: [{template: chart}]
 
-  # For RPI: Vault живёт на rpi, TCP без расшифровки
+  # ---------- Проброс на rpi (TCP без расшифровки, сертификаты на rpi) ----------
+
   - name: vault-proxy
     chart: incubator/raw
-    version: 0.2.5
-    inherit:
-      - template: singleton
+    inherit: [{template: platform}]
 
-  # For RPI: TCP без расшифровки, сертификат на rpi
   - name: obsi-mcp-proxy
     chart: incubator/raw
-    version: 0.2.5
-    inherit:
-      - template: singleton
+    inherit: [{template: platform}]
 
-  # For RPI
   - name: homeassistant-proxy
     chart: incubator/raw
-    version: 0.2.5
     namespace: homeassistant
-    inherit:
-      - template: singleton
+    inherit: [{template: platform}]
