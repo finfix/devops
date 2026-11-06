@@ -62,6 +62,22 @@ releases:
     needs: [loki/loki]
     inherit: [{template: platform}]
 
+  # Сбор логов (пока параллельно с Promtail, метка collector="alloy"), OTLP и pprof
+  - name: alloy
+    chart: grafana/alloy
+    needs: [loki/loki]
+    inherit: [{template: platform}]
+
+  # Трейсы (features.tracing в cluster.yaml)
+  - name: tempo
+    chart: grafana-community/tempo
+    inherit: [{template: platform}]
+
+  # Профили (features.profiling в cluster.yaml)
+  - name: pyroscope
+    chart: grafana/pyroscope
+    inherit: [{template: platform}]
+
   # Prometheus, Alertmanager, Grafana. Grafana хранит состояние в postgres-<env>,
   # БД и пользователя создаёт postgres-init — до него Grafana не стартует
   - name: monitoring

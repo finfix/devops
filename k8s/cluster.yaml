@@ -5,3 +5,8 @@ cluster:
   # Базовый домен: grafana.<domain>
   domain: bonavii.com
   acmeEmail: bonavii@icloud.com
+  # Трейсы (OTLP → Tempo, метрики из трейсов) и профили (pprof → Pyroscope).
+  # Включают экспорт в Alloy и datasources в Grafana; релизы tempo/pyroscope — в helmfile
+  features:
+    tracing: true
+    profiling: true
