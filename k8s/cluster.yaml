@@ -1,0 +1,7 @@
+# Параметры кластера для общей платформы (common/k8s/platform.yaml) → .Values.cluster.*
+cluster:
+  # Имя кластера для меток в логах, метриках и алертах
+  clusterName: coin
+  # Базовый домен: grafana.<domain>
+  domain: bonavii.com
+  acmeEmail: bonavii@icloud.com

@@ -1,15 +1,6 @@
+# Отличия coin-1 от базы
 controller:
-  # Используем сеть хоста чтобы nginx слушал порты 80/443 напрямую на ноде
-  hostNetwork: true
-  # DaemonSet чтобы nginx был на каждой ноде кластера
-  kind: DaemonSet
-  # Сохраняем реальные IP клиентов
-  externalTrafficPolicy: Local
-  # ClusterIP вместо LoadBalancer — трафик идёт через hostNetwork
-  service:
-    type: ClusterIP
-  # Нужно для корректного резолва DNS при hostNetwork
-  dnsPolicy: ClusterFirstWithHostNet
-  # TLS passthrough для mcp.obsi.bonavii.com: coin-1 не должен видеть заметки в открытом виде
+  # TLS passthrough для mcp.obsi, vault и home.bonavii.com: coin-1 передаёт TCP в WG на rpi
+  # и не видит трафик в открытом виде
   extraArgs:
     enable-ssl-passthrough: "true"
