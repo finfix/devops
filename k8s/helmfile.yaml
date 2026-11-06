@@ -62,10 +62,12 @@ releases:
     needs: [loki/loki]
     inherit: [{template: platform}]
 
-  # Prometheus, Alertmanager, Grafana (состояние Grafana — в postgres-prod)
+  # Prometheus, Alertmanager, Grafana. Grafana хранит состояние в postgres-<env>,
+  # БД и пользователя создаёт postgres-init — до него Grafana не стартует
   - name: monitoring
     chart: prometheus-community/kube-prometheus-stack
     disableValidationOnInstall: true
+    needs: ["postgres-{{ .Environment.Name }}/postgres-init"]
     inherit: [{template: platform}]
 
   - name: prometheus-blackbox
