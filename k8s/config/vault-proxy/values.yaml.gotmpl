@@ -1,0 +1,82 @@
+# Проброс vault.bonavii.com через coin-1 в WG-туннель на rpi, где живёт Vault (с 2026-11-06).
+# TLS здесь не терминируется: coin-1 передаёт TCP как есть и не видит секреты.
+# Сертификат выпускает и держит ingress на rpi.
+# passthrough=false — только путь ACME (пока Vault ещё на coin-1); после переключения — true.
+{{- $passthrough := env "VAULT_PASSTHROUGH" | default "true" | eq "true" }}
+resources:
+
+  # Service без селектора: адреса приходят из EndpointSlice ниже
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: vault-rpi
+      namespace: vault-proxy
+    spec:
+      type: ClusterIP
+      ports:
+        - { name: https, port: 443, targetPort: 443, protocol: TCP }
+        - { name: http, port: 80, targetPort: 80, protocol: TCP }
+
+  # Ручной EndpointSlice: указывает Service на WG-адрес rpi
+  - apiVersion: discovery.k8s.io/v1
+    kind: EndpointSlice
+    metadata:
+      name: vault-rpi
+      namespace: vault-proxy
+      labels:
+        kubernetes.io/service-name: vault-rpi
+    addressType: IPv4
+    ports:
+      - { name: https, port: 443, protocol: TCP }
+      - { name: http, port: 80, protocol: TCP }
+    endpoints:
+      - addresses:
+          - 10.10.10.2        # WG-адрес rpi (клиент туннеля)
+        conditions:
+          ready: true
+{{- if $passthrough }}
+
+  # 443: TCP без расшифровки. Требует enable-ssl-passthrough у ingress-nginx
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: vault
+      namespace: vault-proxy
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    spec:
+      ingressClassName: nginx
+      rules:
+        - host: vault.bonavii.com
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: vault-rpi
+                    port:
+                      number: 443
+{{- end }}
+
+  # 80: только проверка HTTP-01 для сертификата на rpi
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: vault-acme
+      namespace: vault-proxy
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    spec:
+      ingressClassName: nginx
+      rules:
+        - host: vault.bonavii.com
+          http:
+            paths:
+              - path: /.well-known/acme-challenge/
+                pathType: Prefix
+                backend:
+                  service:
+                    name: vault-rpi
+                    port:
+                      number: 80

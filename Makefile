@@ -3,6 +3,9 @@
 
 COMMON := $(MAKE) --no-print-directory -f common/Makefile
 
+# Запись Keychain с age-ключом SOPS этого проекта
+export SOPS_KEYCHAIN_SERVICE := sops-age-coin
+
 # Список задач и параметров (задача по умолчанию)
 help:
 	@$(COMMON) $@
