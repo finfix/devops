@@ -1,5 +1,5 @@
-# Общие компоненты (версии, базовая настройка) — common/k8s/platform.yaml.
-# Здесь — что развёрнуто в кластере coin и сервисы проекта.
+# Что развёрнуто в кластере coin. Шаблоны и базовая настройка — common/k8s/platform.yaml,
+# настройка подключается по имени релиза (см. там). Без version — последняя версия чарта.
 bases:
   - ../common/k8s/platform.yaml
 
@@ -23,98 +23,103 @@ helmDefaults:
   kubeContext: coin
 
 releases:
-  # Cluster Users
+
+  # ---------- Платформа ----------
+
   - name: cluster-users
-    inherit:
-      - template: cluster-users
+    chart: incubator/raw
+    namespace: default
+    inherit: [{template: platform}]
 
-  # Nginx Ingress
+  # Отличие coin — ssl-passthrough (config/ingress-nginx)
   - name: ingress-nginx
-    inherit:
-      - template: ingress-nginx
+    chart: ingress-nginx/ingress-nginx
+    inherit: [{template: platform}]
 
-  # Cert-manager
   - name: cert-manager
-    inherit:
-      - template: cert-manager
+    chart: jetstack/cert-manager
+    inherit: [{template: platform}]
 
   - name: letsencrypt-issuer
-    inherit:
-      - template: letsencrypt-issuer
+    chart: incubator/raw
+    namespace: cert-manager
+    disableValidationOnInstall: true
+    needs: [cert-manager/cert-manager]
+    inherit: [{template: platform}]
 
-  # Loki
+  # Registry Credentials — секрет для pull образов в namespace окружения
+  - name: registry-credentials
+    chart: incubator/raw
+    namespace: "{{ .Environment.Name }}"
+    inherit: [{template: prod_dev}]
+
   - name: loki
-    inherit:
-      - template: loki
+    chart: grafana/loki
+    inherit: [{template: platform}]
 
-  # Promtail
   - name: promtail
-    inherit:
-      - template: promtail
+    chart: grafana/promtail
+    needs: [loki/loki]
+    inherit: [{template: platform}]
 
-  # Monitoring
+  # Prometheus, Alertmanager, Grafana (состояние Grafana — в postgres-prod)
   - name: monitoring
-    inherit:
-      - template: monitoring
+    chart: prometheus-community/kube-prometheus-stack
+    disableValidationOnInstall: true
+    inherit: [{template: platform}]
 
   - name: prometheus-blackbox
-    inherit:
-      - template: prometheus-blackbox
+    chart: prometheus-community/prometheus-blackbox-exporter
+    namespace: monitoring
+    needs: [monitoring/monitoring]
+    inherit: [{template: platform}]
 
   - name: grafana-dashboards
-    inherit:
-      - template: grafana-dashboards
+    chart: incubator/raw
+    namespace: monitoring
+    needs: [monitoring/monitoring]
+    inherit: [{template: platform}]
 
-  # Postgresql
+  # Мажорные версии Postgres требуют миграции данных — версия закреплена
   - name: postgres
-    inherit:
-      - template: postgres
+    chart: bitnami/postgresql
+    version: 18.3.0
+    inherit: [{template: prod_dev}]
 
   - name: postgres-init
-    inherit:
-      - template: postgres-init
+    chart: incubator/raw
+    namespace: "postgres-{{ .Environment.Name }}"
+    needs: ["postgres-{{ .Environment.Name }}/postgres"]
+    inherit: [{template: prod_dev}]
 
-  # Registry Credentials
-  - name: registry-credentials
-    inherit:
-      - template: registry-credentials
+  # ---------- Сервисы ----------
 
-  # Server
   - name: coin-server
     chart: ../common/k8s/charts/app
-    inherit:
-      - template: chart
     needs:
       - "postgres-{{ .Environment.Name }}/postgres-init"
       - "{{ .Environment.Name }}/registry-credentials"
+    inherit: [{template: chart}]
 
   # Tasks server (jedi-tasks)
   - name: tasks-server
     chart: ../common/k8s/charts/app
-    inherit:
-      - template: chart
     needs:
       - "postgres-{{ .Environment.Name }}/postgres-init"
       - "{{ .Environment.Name }}/registry-credentials"
+    inherit: [{template: chart}]
 
-  # For RPI: Vault живёт на rpi, TCP без расшифровки
+  # ---------- Проброс на rpi (TCP без расшифровки, сертификаты на rpi) ----------
+
   - name: vault-proxy
     chart: incubator/raw
-    version: 0.2.5
-    inherit:
-      - template: singleton
+    inherit: [{template: platform}]
 
-  # For RPI: TCP без расшифровки, сертификат на rpi
   - name: obsi-mcp-proxy
     chart: incubator/raw
-    version: 0.2.5
-    inherit:
-      - template: singleton
+    inherit: [{template: platform}]
 
-  # For RPI
   - name: homeassistant-proxy
     chart: incubator/raw
-    version: 0.2.5
     namespace: homeassistant
-    inherit:
-      - template: singleton
+    inherit: [{template: platform}]
