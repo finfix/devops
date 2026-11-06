@@ -10,3 +10,6 @@ controller:
     type: ClusterIP
   # Нужно для корректного резолва DNS при hostNetwork
   dnsPolicy: ClusterFirstWithHostNet
+  # TLS passthrough для mcp.obsi.bonavii.com: coin-1 не должен видеть заметки в открытом виде
+  extraArgs:
+    enable-ssl-passthrough: "true"

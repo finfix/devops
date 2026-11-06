@@ -1,8 +1,6 @@
-# Проксирование home.bonavii.com через ingress coin-1 в WG-туннель на rpi.
-# TLS терминируется здесь настоящим сертом home.bonavii.com, дальше идёт
-# новый HTTPS-запрос на 10.10.10.2:443 (ingress rpi). Host форвардится как есть —
-# rpi-ingress сам матчит home.bonavii.com (хост добавлен в его конфиг), поэтому
-# переписывать Host не нужно и сниппеты не требуются.
+# Проброс home.bonavii.com через coin-1 в WG-туннель на rpi. TLS здесь не терминируется:
+# coin-1 передаёт TCP как есть и не видит трафик. Настоящий сертификат и таймауты
+# websocket живут на ingress rpi. Требует enable-ssl-passthrough у ingress-nginx.
 resources:
 
   # Service без селектора: только "виртуальный" фронт для ingress,
@@ -19,6 +17,10 @@ resources:
           port: 443
           targetPort: 443
           protocol: TCP
+        - name: http
+          port: 80
+          targetPort: 80
+          protocol: TCP
 
   # Ручной EndpointSlice: указывает Service на WG-адрес rpi.
   - apiVersion: discovery.k8s.io/v1
@@ -34,40 +36,25 @@ resources:
       - name: https          # имя обязано совпадать с портом Service
         port: 443
         protocol: TCP
+      - name: http
+        port: 80
+        protocol: TCP
     endpoints:
       - addresses:
           - 10.10.10.2        # WG-адрес rpi (клиент туннеля)
         conditions:
           ready: true
 
-  # Ingress: терминирует внешний TLS, ре-шифрует в туннель, форвардит Host как есть.
+  # 443: TCP без расшифровки
   - apiVersion: networking.k8s.io/v1
     kind: Ingress
     metadata:
       name: homeassistant
       namespace: homeassistant
       annotations:
-        # ↓ ЗАМЕНИ на реальный ACME cluster-issuer на coin-1
-        cert-manager.io/cluster-issuer: letsencrypt
-
-        # бэкенд говорит HTTPS
-        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-
-        # серт на rpi селфсайн — проверять его нечем и незачем
-        nginx.ingress.kubernetes.io/proxy-ssl-verify: "off"
-        # шлём SNI = home.bonavii.com, по нему rpi-ingress подберёт server-блок.
-        # Host форвардится как есть, переписывать не нужно.
-        nginx.ingress.kubernetes.io/proxy-ssl-server-name: "on"
-        nginx.ingress.kubernetes.io/proxy-ssl-name: "home.bonavii.com"
-
-        # HA живёт на websocket'ах (lovelace, live-логи) — поднимаем таймауты
-        nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-        nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+        nginx.ingress.kubernetes.io/ssl-passthrough: "true"
     spec:
       ingressClassName: nginx
-      tls:
-        - hosts: [home.bonavii.com]
-          secretName: home-bonavii-tls     # cert-manager создаст сам
       rules:
         - host: home.bonavii.com
           http:
@@ -79,3 +66,25 @@ resources:
                     name: homeassistant-rpi
                     port:
                       number: 443
+
+  # 80: только проверка HTTP-01, которой Let's Encrypt подтверждает домен для сертификата на rpi
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: homeassistant-acme
+      namespace: homeassistant
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    spec:
+      ingressClassName: nginx
+      rules:
+        - host: home.bonavii.com
+          http:
+            paths:
+              - path: /.well-known/acme-challenge/
+                pathType: Prefix
+                backend:
+                  service:
+                    name: homeassistant-rpi
+                    port:
+                      number: 80
