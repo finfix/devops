@@ -8,11 +8,15 @@ bases:
 environments:
   dev:
     values:
+      # Адреса сервисов наблюдаемости (переопределяются в cluster.yaml)
+      - ../common/k8s/platform/endpoints.yaml
       - cluster.yaml
     secrets:
       - "secrets/secrets-dev.yaml"
   prod:
     values:
+      # Адреса сервисов наблюдаемости (переопределяются в cluster.yaml)
+      - ../common/k8s/platform/endpoints.yaml
       - cluster.yaml
     secrets:
       - "secrets/secrets-prod.yaml"
