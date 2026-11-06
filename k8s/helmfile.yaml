@@ -143,13 +143,6 @@ releases:
     values:
       - config/monitoring/dashboards/dashboards-values.yaml.gotmpl
 
-  # Vault — секреты для CI (вход по GitHub OIDC)
-  - name: vault
-    chart: hashicorp/vault
-    version: 0.34.1
-    inherit:
-      - template: singleton
-
   # Postgresql
   - name: postgres
     chart: bitnami/postgresql
@@ -196,6 +189,13 @@ releases:
 
   # For RPI: Vault живёт на rpi, TCP без расшифровки
   - name: vault-proxy
+    chart: incubator/raw
+    version: 0.2.5
+    inherit:
+      - template: singleton
+
+  # For RPI: TCP без расшифровки, сертификат на rpi
+  - name: obsi-mcp-proxy
     chart: incubator/raw
     version: 0.2.5
     inherit:

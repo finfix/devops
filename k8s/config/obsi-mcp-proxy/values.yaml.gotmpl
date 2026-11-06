@@ -1,0 +1,79 @@
+# Проброс mcp.obsi.bonavii.com через coin-1 в WG-туннель на rpi. В отличие от homeassistant-proxy
+# TLS здесь не терминируется: coin-1 передаёт TCP как есть и не видит заметки и пароль.
+# Настоящий сертификат выпускает и держит ingress на rpi.
+resources:
+
+  # Service без селектора: адреса приходят из EndpointSlice ниже
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: obsi-mcp-rpi
+      namespace: obsi-mcp-proxy
+    spec:
+      type: ClusterIP
+      ports:
+        - { name: https, port: 443, targetPort: 443, protocol: TCP }
+        - { name: http, port: 80, targetPort: 80, protocol: TCP }
+
+  # Ручной EndpointSlice: указывает Service на WG-адрес rpi
+  - apiVersion: discovery.k8s.io/v1
+    kind: EndpointSlice
+    metadata:
+      name: obsi-mcp-rpi
+      namespace: obsi-mcp-proxy
+      labels:
+        # связывает slice с Service выше — имя обязано совпадать
+        kubernetes.io/service-name: obsi-mcp-rpi
+    addressType: IPv4
+    ports:
+      - { name: https, port: 443, protocol: TCP }
+      - { name: http, port: 80, protocol: TCP }
+    endpoints:
+      - addresses:
+          - 10.10.10.2        # WG-адрес rpi (клиент туннеля)
+        conditions:
+          ready: true
+
+  # 443: TCP без расшифровки. Требует enable-ssl-passthrough у ingress-nginx
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: obsi-mcp
+      namespace: obsi-mcp-proxy
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    spec:
+      ingressClassName: nginx
+      rules:
+        - host: mcp.obsi.bonavii.com
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: obsi-mcp-rpi
+                    port:
+                      number: 443
+
+  # 80: только проверка HTTP-01, которой Let's Encrypt подтверждает домен для сертификата на rpi
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: obsi-mcp-acme
+      namespace: obsi-mcp-proxy
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    spec:
+      ingressClassName: nginx
+      rules:
+        - host: mcp.obsi.bonavii.com
+          http:
+            paths:
+              - path: /.well-known/acme-challenge/
+                pathType: Prefix
+                backend:
+                  service:
+                    name: obsi-mcp-rpi
+                    port:
+                      number: 80
