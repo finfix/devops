@@ -86,6 +86,9 @@ releases:
   # БД и пользователя создаёт postgres-init — до него Grafana не стартует
   - name: monitoring
     chart: prometheus-community/kube-prometheus-stack
+    # 93.1.1 ссылается на prometheus-operator:v0.95.1, которого нет в registry (2026-11-10).
+    # Снять закрепление, когда образ появится
+    version: 92.21.2
     disableValidationOnInstall: true
     needs: ["postgres-{{ .Environment.Name }}/postgres-init"]
     inherit: [{template: platform}]
