@@ -31,7 +31,7 @@ resources:
       - { name: http, port: 80, protocol: TCP }
     endpoints:
       - addresses:
-          - 10.10.10.2        # WG-адрес rpi (клиент туннеля)
+          - 10.40.40.2        # WG-адрес pi в wg-coin-pi
         conditions:
           ready: true
 {{- if $passthrough }}
