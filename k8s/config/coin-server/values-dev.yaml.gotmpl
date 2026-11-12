@@ -33,6 +33,8 @@ envs:
     LISTEN_SERVICE_HTTP: "0.0.0.0:8081"
     LISTEN_GRPC: "0.0.0.0:8090"
     AUTH_REFRESH_TOKEN_TTL: "720h"
-    AUTH_ACCESS_TOKEN_TTL: "30m"
+    # Временно для воспроизведения гонки рефреша: вернуть 30m и 5m после проверки
+    AUTH_ACCESS_TOKEN_TTL: "1m"
+    AUTH_REFRESH_TOKEN_GRACE_PERIOD: "1s"
     NOTIFICATIONS_ENABLED: "false"
     NOTIFICATIONS_APNS_KEY_FILE_PATH: ""
