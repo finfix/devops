@@ -16,6 +16,9 @@ service:
         - name: http
           port: 8080
           targetPort: 8080
+        - name: mcp
+          port: 8092
+          targetPort: 8092
 
 deployment:
     podAnnotations:

@@ -16,6 +16,23 @@ ingresses:
           - hosts:
                 - grpc.dev.bonavii.com
             secretName: coin-server-dev-grpc-tls
+    # MCP: обычный HTTP на порт 8092, без gRPC-аннотации
+    - name: mcp
+      enabled: true
+      className: nginx
+      annotations:
+          cert-manager.io/cluster-issuer: letsencrypt
+      hosts:
+          - host: mcp.coin.dev.bonavii.com
+            paths:
+                - path: /
+                  pathType: Prefix
+                  # Порт задается у пути: чарт читает servicePort из path, а не из ingress
+                  servicePort: 8092
+      tls:
+          - hosts:
+                - mcp.coin.dev.bonavii.com
+            secretName: coin-server-dev-mcp-tls
 
 envs:
     PGSQL_HOST: "postgres-postgresql.postgres-dev.svc.cluster.local:5432"
@@ -32,6 +49,9 @@ envs:
     LISTEN_HTTP: "0.0.0.0:8080"
     LISTEN_SERVICE_HTTP: "0.0.0.0:8081"
     LISTEN_GRPC: "0.0.0.0:8090"
+    LISTEN_MCP: "0.0.0.0:8092"
+    # Публичный URL MCP: issuer Authorization Server OAuth и resource для токенов
+    MCP_PUBLIC_URL: "https://mcp.coin.dev.bonavii.com"
     AUTH_REFRESH_TOKEN_TTL: "720h"
     # Временно для воспроизведения гонки рефреша: вернуть 30m и 5m после проверки
     AUTH_ACCESS_TOKEN_TTL: "1m"
